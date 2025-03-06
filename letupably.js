@@ -1,39 +1,3 @@
-      /**************************************************
-       * 0. Lazy-load Ably script on:
-       *    - Scroll beyond 200px, or
-       *    - 2 seconds timeout
-       **************************************************/
-      let ablyLoaded = false;
-      let scrollHandler;
-
-      function lazyLoadAbly() {
-        if (ablyLoaded) return; // Already loaded? do nothing
-        ablyLoaded = true;
-
-        // Remove scroll listener
-        window.removeEventListener("scroll", scrollHandler);
-
-        // Dynamically load Ably script
-        const script = document.createElement("script");
-        script.src = "https://cdn.ably.com/lib/ably.min-1.js";
-        script.onload = () => {
-          // Now Ably is loaded, we can initialize & subscribe
-          initAbly();
-        };
-        document.head.appendChild(script);
-      }
-
-      // 1) Scroll-based load
-      scrollHandler = () => {
-        if (window.scrollY > 200) {
-          lazyLoadAbly();
-        }
-      };
-      window.addEventListener("scroll", scrollHandler);
-
-      // 2) Time-based load (2 seconds)
-      setTimeout(lazyLoadAbly, 2000);
-
       /************************************************
        * 1. initAbly() - Called once Ably is loaded
        ************************************************/
@@ -84,7 +48,7 @@
 
         // Logo (replace with your actual image URL)
         const logoImg = document.createElement("img");
-        logoImg.src = "https://placehold.co/48x48/png";
+        logoImg.src = "https://placehold.co/64x64/png";
         logoImg.alt = "User Logo";
         logoImg.className = "toast-logo";
         toastEl.appendChild(logoImg);
@@ -106,10 +70,7 @@
           subtextEl.className = "toast-subtext";
           /* For example: "12:58 <img ...>" in grey, right-aligned */
           subtextEl.innerHTML = `
-            <small style="color: #cccccc;">
-              ${mmss}
-            </small>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="color:#2ebbef" fill="currentColor" class="bi bi-check-all" viewBox="0 0 16 16">
+              <span>${mmss}</span> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="color:#2ebbef" fill="currentColor" class="bi bi-check-all" viewBox="0 0 16 16">
   <path d="M8.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L2.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093L8.95 4.992zm-.92 5.14.92.92a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 1 0-1.091-1.028L9.477 9.417l-.485-.486z"/>
 </svg>
           `;
