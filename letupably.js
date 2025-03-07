@@ -56,16 +56,17 @@
       /************************************************
        * 2. formatMinutesSeconds(): extracts mm:ss (24h)
        ************************************************/
-      function formatMinutesSeconds(dateString) {
-        const d = new Date(dateString);
-        let minutes = d.getMinutes();
-        let seconds = d.getSeconds();
+function formatMinutesSeconds(dateString) {
+  const d = new Date(dateString);
+  let hours = d.getHours();
+  let minutes = d.getMinutes();
 
-        if (minutes < 10) minutes = "0" + minutes;
-        if (seconds < 10) seconds = "0" + seconds;
+  if (hours < 10) hours = "0" + hours;
+  if (minutes < 10) minutes = "0" + minutes;
 
-        return `${minutes}:${seconds}`; // e.g. "09:07"
-      }
+  // Format as hh:mm in 24-hour format
+  return `${hours}:${minutes}`; // e.g. "09:07"
+}
 
       /************************************************
        * 3. showToast() - Creates & displays a new toast
