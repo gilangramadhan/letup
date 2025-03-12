@@ -19,8 +19,14 @@ function lazyLoadSupabase() {
   window.removeEventListener("scroll", scrollHandler);
 
   // Dynamically load Supabase script
-  const script = document.createElement("script");
-  script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+const script = document.createElement("script");
+script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+script.onload = () => {
+  // Now Supabase is loaded, we can initialize & subscribe
+  initSupabase();
+};
+document.head.appendChild(script);createElement("script");
+  script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"; // Changed URL
   script.onload = () => {
     // Now Supabase is loaded, we can initialize & subscribe
     initSupabase();
@@ -43,16 +49,17 @@ setTimeout(lazyLoadSupabase, 1000);
  * 1. initSupabase() - Called once Supabase is loaded
  ************************************************/
 function initSupabase() {
-  // Initialize Supabase client
-  const SUPABASE_URL = 'https://tsaaphhxqbsknszartza.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU';
-
-  supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // Initialize both notification systems
-  initRealtimeNotifications();
-  initRotatorNotifications();
-}
+    // Initialize Supabase client
+    const SUPABASE_URL = 'https://tsaaphhxqbsknszartza.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU';
+  
+    // Use "supabase" (global object) instead of "supabaseJs"
+    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+    // Initialize both notification systems
+    initRealtimeNotifications();
+    initRotatorNotifications();
+  }
 
 /************************************************
 * 2. Realtime Notifications System
