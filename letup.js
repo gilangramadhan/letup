@@ -97,9 +97,9 @@ function handleRealtimeNotification(notification) {
         // Payment confirmation notification - now passing the lastUpdatedAt
         showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt);
     } else {
-        // Standard order notification
+        // Standard order notification - pass the createdAt timestamp for the day
         const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
-        showToast(buyer, product, hhmm);
+        showToast(buyer, product, hhmm, createdAt);
     }
 }
 
@@ -228,9 +228,24 @@ function formatRelativeTime(dateString) {
 }
 
 /************************************************
+ * New Function: formatIndonesianDay(): gets day name in Indonesian
+ ************************************************/
+function formatIndonesianDay(dateString) {
+    const date = new Date(dateString);
+    const dayIndex = date.getDay();
+    
+    // Array of Indonesian day names
+    const indonesianDays = [
+        "Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
+    ];
+    
+    return indonesianDays[dayIndex];
+}
+
+/************************************************
  * 6. showToast() - Creates & displays a new toast
  ************************************************/
-function showToast(buyer, product, hhmm) {
+function showToast(buyer, product, hhmm, timestamp) {
     // Limit to max 3 toast elements
     const container = document.getElementById("toast-container");
     if (container.children.length >= 3) {
@@ -268,13 +283,13 @@ function showToast(buyer, product, hhmm) {
 
     // Subtext with inline image (hh:mm)
     if (hhmm) {
+        // Get the Indonesian day name
+        const dayName = formatIndonesianDay(timestamp);
         const subtextEl = document.createElement("div");
         subtextEl.className = "toast-subtext";
         subtextEl.innerHTML = `
-    <div class="toast-left"><span>Baru saja</span></div><div class="toast-right"><span>${hhmm}</span> 
-    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" style=\"color:#2ebbef\" fill=\"currentColor\" class=\"bi bi-check-all\" viewBox=\"0 0 16 16\">
-      <path d=\"M8.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L2.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093L8.95 4.992zm-.92 5.14.92.92a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 1 0-1.091-1.028L9.477 9.417l-.485-.486z\"/>
-    </svg></div>
+    <div class="toast-left"><span>Baru saja</span></div><div class="toast-right"><span>${dayName}, ${hhmm}</span> 
+    </div>
   `;
         contentEl.appendChild(subtextEl);
     }
@@ -298,8 +313,10 @@ function showToast(buyer, product, hhmm) {
         toastEl.classList.add("show");
     });
 
+    return toastEl;
+
     // Optionally auto-remove
-    // setTimeout(() => hideToast(toastEl), 5000);
+     setTimeout(() => hideToast(toastEl), 5000);
 }
 
 /************************************************
@@ -338,10 +355,12 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     // Heading with payment confirmation message
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${buyer} telah transfer pembayaran untuk <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${buyer} telah membeli <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
 
     // Subtext with both relative time AND hh:mm format
+    // Get the Indonesian day name
+    const dayName = lastUpdatedAt ? formatIndonesianDay(lastUpdatedAt) : ""; 
     const subtextEl = document.createElement("div");
     subtextEl.className = "toast-subtext";
 
@@ -353,10 +372,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
 
     subtextEl.innerHTML = `
       <div class="toast-left"><span>${relativeTime}</span></div>
-      <div class="toast-right"><span>${hhmm}</span> 
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="color:#2ebbef" fill="currentColor" class="bi bi-check-all" viewBox="0 0 16 16">
-          <path d="M8.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L2.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093L8.95 4.992zm-.92 5.14.92.92a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 1 0-1.091-1.028L9.477 9.417l-.485-.486z"/>
-        </svg>
+      <div class="toast-right"><span>${dayName}, ${hhmm}</span> 
       </div>
     `;
     contentEl.appendChild(subtextEl);
@@ -383,7 +399,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     // IMPORTANT: Return the element instead of auto-removing it
     return toastEl;
 
-    // REMOVE this auto-hide timer
+    // Optionally auto-remove
     // setTimeout(() => hideToast(toastEl), 5000);
 }
 
