@@ -5,8 +5,8 @@
  **************************************************/
 let supabaseLoaded = false;
 let scrollHandler;
-let supabase; // Will hold our Supabase client
-let realtimeSubscription; // Will hold our subscription
+let supabase;            // Will hold our Supabase client
+let realtimeSubscription;
 let rotatorData = [];
 let isRotatorRunning = false;
 let rotatorTimeout = null;
@@ -18,17 +18,11 @@ function lazyLoadSupabase() {
   // Remove scroll listener
   window.removeEventListener("scroll", scrollHandler);
 
-  // Dynamically load Supabase script
-const script = document.createElement("script");
-script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-script.onload = () => {
-  // Now Supabase is loaded, we can initialize & subscribe
-  initSupabase();
-};
-document.head.appendChild(script);createElement("script");
-  script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"; // Changed URL
+  // Dynamically load Supabase script (UMD version)
+  const script = document.createElement("script");
+  script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
   script.onload = () => {
-    // Now Supabase is loaded, we can initialize & subscribe
+    // Now Supabase is loaded, we can initialize
     initSupabase();
   };
   document.head.appendChild(script);
@@ -42,24 +36,26 @@ scrollHandler = () => {
 };
 window.addEventListener("scroll", scrollHandler);
 
-// 2) Time-based load (1 seconds)
+// 2) Time-based load (1 second)
 setTimeout(lazyLoadSupabase, 1000);
 
 /************************************************
  * 1. initSupabase() - Called once Supabase is loaded
  ************************************************/
 function initSupabase() {
-    // Initialize Supabase client
-    const SUPABASE_URL = 'https://tsaaphhxqbsknszartza.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU';
-  
-    // Use "supabase" (global object) instead of "supabaseJs"
-    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-    // Initialize both notification systems
-    initRealtimeNotifications();
-    initRotatorNotifications();
-  }
+  // 1) Access the UMD global
+  const { createClient } = window.supabase; 
+  // 2) Provide your own Supabase project credentials
+  const SUPABASE_URL = 'https://tsaaphhxqbsknszartza.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU';
+
+  // 3) Create the client
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Then initialize the rest
+  initRealtimeNotifications();
+  initRotatorNotifications();
+}
 
 /************************************************
 * 2. Realtime Notifications System
@@ -109,38 +105,77 @@ function handleRealtimeNotification(notification) {
 /************************************************
  * 3. Rotator Notifications System
  ************************************************/
-async function fetchRotatorData() {
-  try {
-    // Fetch old notifications (7 days) that are payment confirmations
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('event_type', 'order.updated')
-      .eq('payment_status', 'paid')
-      .gte('created_at', sevenDaysAgo.toISOString())
-      .limit(10);
-      
-    if (error) throw error;
-    
-    rotatorData = data;
-    
-    // Randomize the order
-    rotatorData.sort(() => Math.random() - 0.5);
-    
-    console.log(`Fetched ${rotatorData.length} entries for rotator notifications`);
-    
-    // Start the rotator if it's not already running and we have data
-    if (!isRotatorRunning && rotatorData.length > 0) {
-      isRotatorRunning = true;
-      showNextRotatorNotification();
-    }
-  } catch (error) {
-    console.error("Error fetching rotator data:", error);
+/************************************************
+ * Rotator Notifications System
+ ************************************************/
+function initRotatorNotifications() {
+    // Immediately fetch initial data
+    fetchRotatorData().then(() => {
+      // Start if we have data and not running yet
+      if (!isRotatorRunning && rotatorData.length > 0) {
+        isRotatorRunning = true;
+        showNextRotatorNotification();
+      }
+    });
+  
+    // Refresh data periodically (e.g., every 5 min)
+    setInterval(fetchRotatorData, 5 * 60 * 1000);
   }
-}
+  
+  async function fetchRotatorData() {
+    try {
+      // Example: fetch old notifications from 'notifications' table
+      // only those that are payment confirmations in the last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('event_type', 'order.updated')
+        .eq('payment_status', 'paid')
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .limit(10);
+  
+      if (error) throw error;
+  
+      rotatorData = data || [];
+  
+      // Randomize order if desired
+      rotatorData.sort(() => Math.random() - 0.5);
+  
+      console.log(`Fetched ${rotatorData.length} entries for rotator notifications`);
+  
+      // If we got new data & rotator not running, start it
+      if (!isRotatorRunning && rotatorData.length > 0) {
+        isRotatorRunning = true;
+        showNextRotatorNotification();
+      }
+    } catch (err) {
+      console.error('Error fetching rotator data:', err);
+    }
+  }
+  
+  function showNextRotatorNotification() {
+    if (rotatorData.length === 0) {
+      // No data => stop
+      isRotatorRunning = false;
+      return;
+    }
+  
+    // Take the first item, push it to the end (to rotate through them)
+    const item = rotatorData.shift();
+    rotatorData.push(item);
+  
+    // Example: showPaymentConfirmationToast or showToast
+    const buyer = item.buyer_name || 'Seseorang';
+    const productName = item.product_name || 'produk ini';
+    const createdAt = item.created_at;
+    showPaymentConfirmationToast(buyer, productName, createdAt);
+  
+    // Show next one after 5 seconds
+    rotatorTimeout = setTimeout(showNextRotatorNotification, 5000);
+  }  
 
 /************************************************
  * 4. formatHoursMinutes(): extracts hh:mm (24h)
@@ -234,13 +269,13 @@ function showToast(buyer, product, hhmm) {
   toastEl.appendChild(contentEl);
 
   // Close button
-  const closeBtn = document.createElement("button");
-  closeBtn.className = "toast-close";
-  closeBtn.innerText = "x";
-  closeBtn.addEventListener("click", () => {
-    hideToast(toastEl);
-  });
-  toastEl.appendChild(closeBtn);
+  // const closeBtn = document.createElement("button");
+  // closeBtn.className = "toast-close";
+  // closeBtn.innerText = "x";
+  // closeBtn.addEventListener("click", () => {
+  //  hideToast(toastEl);
+  // });
+  // toastEl.appendChild(closeBtn);
 
   // Append to container
   container.appendChild(toastEl);
@@ -255,7 +290,7 @@ function showToast(buyer, product, hhmm) {
 }
 
 /************************************************
- * 7. showPaymentConfirmationToast() - For payment notifications
+ * 7. Modified showPaymentConfirmationToast() - returns the element
  ************************************************/
 function showPaymentConfirmationToast(buyer, product, timestamp) {
   // Limit to max 3 toast elements
@@ -271,14 +306,14 @@ function showPaymentConfirmationToast(buyer, product, timestamp) {
 
   // Lottie Player (can use a different animation for payment)
   const lottieEl = document.createElement("dotlottie-player");
-  lottieEl.setAttribute("src", "https://lottie.host/64cf470d-6e24-4d37-9f19-7ea11b9e3bff/upEhnuCBXw.lottie");
+  lottieEl.setAttribute("src", "https://lottie.host/5c984d88-4011-4916-9921-6c38eff7654e/iR7fvY00YL.lottie");
   lottieEl.setAttribute("background", "transparent");
   lottieEl.setAttribute("speed", "1");
   lottieEl.setAttribute("direction", "1");
   lottieEl.setAttribute("playMode", "normal");
   lottieEl.setAttribute("autoplay", "");
-  lottieEl.style.width = "64px";
-  lottieEl.style.height = "64px";
+  lottieEl.style.width = "59px";
+  lottieEl.style.height = "59px";
   lottieEl.style.marginRight = "4px";
   lottieEl.style.flexShrink = "0";
   toastEl.appendChild(lottieEl);
@@ -302,7 +337,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp) {
 
   subtextEl.innerHTML = `
     <div class="toast-left"><span>${relativeTime}</span></div>
-    <div class="toast-right">
+    <!--div class="toast-right">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="color:#2ebbef" fill="currentColor" class="bi bi-check-all" viewBox="0 0 16 16">
         <path d="M8.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L2.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093L8.95 4.992zm-.92 5.14.92.92a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 1 0-1.091-1.028L9.477 9.417l-.485-.486z"/>
       </svg>
@@ -312,68 +347,14 @@ function showPaymentConfirmationToast(buyer, product, timestamp) {
 
   toastEl.appendChild(contentEl);
 
-  /************************************************
-   * Missing Function: Update Notification Status
-   ************************************************/
-  async function updateNotificationDisplayed(id) {
-    try {
-      await supabase
-        .from('notifications')
-        .update({ displayed: true })
-        .eq('id', id);
-    } catch (error) {
-      console.error("Error updating notification:", error);
-    }
-  }
-
-  /************************************************
-   * Missing Function: Initialize Rotator
-   ************************************************/
-  function initRotatorNotifications() {
-    // Fetch initial data
-    fetchRotatorData().then(() => {
-      if (!isRotatorRunning && rotatorData.length > 0) {
-        isRotatorRunning = true;
-        showNextRotatorNotification();
-      }
-    });
-
-    // Set up periodic refresh of data (e.g., every 5 minutes)
-    setInterval(fetchRotatorData, 5 * 60 * 1000);
-  }
-
-  /************************************************
-   * Missing Function: Show Next Rotator Notification
-   ************************************************/
-  function showNextRotatorNotification() {
-    if (rotatorData.length === 0) {
-      isRotatorRunning = false;
-      return;
-    }
-
-    // Get the next item (or loop back to beginning)
-    const item = rotatorData.shift();
-    rotatorData.push(item); // Move to end of array to cycle through
-
-    // Display the notification
-    const buyer = item.buyer_name || "Seseorang";
-    const productName = item.product_name || "produk ini";
-    const createdAt = item.created_at;
-
-    showPaymentConfirmationToast(buyer, productName, createdAt);
-
-    // Schedule the next notification
-    rotatorTimeout = setTimeout(showNextRotatorNotification, 5000);
-  }
-
   // Close button
-  const closeBtn = document.createElement("button");
-  closeBtn.className = "toast-close";
-  closeBtn.innerText = "x";
-  closeBtn.addEventListener("click", () => {
-    hideToast(toastEl);
-  });
-  toastEl.appendChild(closeBtn);
+  // const closeBtn = document.createElement("button");
+  // closeBtn.className = "toast-close";
+  // closeBtn.innerText = "x";
+  // closeBtn.addEventListener("click", () => {
+  //  hideToast(toastEl);
+  // });
+  // toastEl.appendChild(closeBtn);
 
   // Append to container
   container.appendChild(toastEl);
@@ -383,16 +364,49 @@ function showPaymentConfirmationToast(buyer, product, timestamp) {
     toastEl.classList.add("show");
   });
 
-  // Auto-remove after 5 seconds for rotator notifications
-  setTimeout(() => hideToast(toastEl), 5000);
+  // IMPORTANT: Return the element instead of auto-removing it
+  return toastEl;
+  
+  // REMOVE this auto-hide timer
+  // setTimeout(() => hideToast(toastEl), 5000);
 }
 
+/************************************************
+ * Modified: Show Next Rotator Notification with Delay
+ ************************************************/
 function hideToast(el) {
-  el.classList.remove("show");
-  el.classList.add("hide");
+    el.classList.remove("show");
+    el.classList.add("hide");
+    setTimeout(() => {
+      el.remove();
+    }, 300);
+  }
+
+function showNextRotatorNotification() {
+  if (rotatorData.length === 0) {
+    isRotatorRunning = false;
+    return;
+  }
+  
+  // Take the first item, push it to the end (to rotate through them)
+  const item = rotatorData.shift();
+  rotatorData.push(item);
+  
+  // Get values from the data item
+  const buyer = item.buyer_name || 'Seseorang';
+  const productName = item.product_name || 'produk ini';
+  const createdAt = item.created_at;
+  
+  // Display the notification and get reference to the element
+  const toastEl = showPaymentConfirmationToast(buyer, productName, createdAt);
+  
+  // First timeout: Hide the toast after displaying it for 5 seconds
   setTimeout(() => {
-    el.remove();
-  }, 300);
+    hideToast(toastEl);
+    
+    // Second timeout: Wait another 5 seconds before showing next notification
+    rotatorTimeout = setTimeout(showNextRotatorNotification, 5000);
+  }, 5000);
 }
 
 // Cleanup function when page unloads
