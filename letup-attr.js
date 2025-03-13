@@ -10,7 +10,8 @@ const LETUP_CONFIG = {
     scrollTriggerPoint: 200,            // Scroll distance to trigger loading (pixels - fixed)
     supabaseUrl: 'https://tsaaphhxqbsknszartza.supabase.co', // Default Supabase URL
     supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU', // Default Supabase anon key
-    tableName: 'notifications'          // Default table name
+    tableName: 'notifications',         // Default table name
+    showDismissButton: false            // Show close button on toasts (default: false)
 };
 
 /**************************************************
@@ -159,6 +160,11 @@ addStyles();
                 currentScript.getAttribute('data-enable-rotator') === 'true';
         }
         
+        if (currentScript.hasAttribute('data-dismiss')) {
+            LETUP_CONFIG.showDismissButton = 
+                currentScript.getAttribute('data-dismiss') === 'true';
+        }
+        
         // Parse numeric attributes
         if (currentScript.hasAttribute('data-max-toasts')) {
             const value = parseInt(currentScript.getAttribute('data-max-toasts'));
@@ -209,6 +215,11 @@ addStyles();
     if (container.hasAttribute('data-enable-rotator')) {
         LETUP_CONFIG.enableRotatorNotifications = 
             container.getAttribute('data-enable-rotator') === 'true';
+    }
+    
+    if (container.hasAttribute('data-dismiss')) {
+        LETUP_CONFIG.showDismissButton = 
+            container.getAttribute('data-dismiss') === 'true';
     }
     
     // Parse numeric attributes
@@ -303,16 +314,22 @@ setTimeout(lazyLoadSupabase, 1000);
 function initSupabase() {
     // 1) Access the UMD global
     const { createClient } = window.supabase;
-    // 2) Provide your own Supabase project credentials
-    const SUPABASE_URL = 'https://tsaaphhxqbsknszartza.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU';
+    
+    // 2) Use Supabase credentials from configuration
+    const SUPABASE_URL = LETUP_CONFIG.supabaseUrl;
+    const SUPABASE_ANON_KEY = LETUP_CONFIG.supabaseKey;
 
     // 3) Create the client
     supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Then initialize the rest
-    initRealtimeNotifications();
-    initRotatorNotifications();
+    // Then initialize the features based on configuration
+    if (LETUP_CONFIG.enableRealtimeNotifications) {
+        initRealtimeNotifications();
+    }
+    
+    if (LETUP_CONFIG.enableRotatorNotifications) {
+        initRotatorNotifications();
+    }
 }
 
 /************************************************
@@ -366,17 +383,17 @@ function handleRealtimeNotification(notification) {
 // Add this missing function
 async function updateNotificationDisplayed(id) {
     try {
-      await supabase
-        .from('notifications')
-        .update({ 
-          displayed: true,
-          last_updated_at: new Date().toISOString() // Update the last_updated_at field
-        })
-        .eq('id', id);
+        await supabase
+            .from(LETUP_CONFIG.tableName) // Use configurable table name
+            .update({ 
+                displayed: true,
+                last_updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
     } catch (error) {
-      console.error("Error updating notification:", error);
+        console.error("Error updating notification:", error);
     }
-  }
+}
 
 /************************************************
  * 3. Rotator Notifications System
@@ -446,8 +463,11 @@ function showNextRotatorNotification() {
     const createdAt = item.created_at;
     showPaymentConfirmationToast(buyer, productName, createdAt);
 
-    // Show next one after 5 seconds
-    rotatorTimeout = setTimeout(showNextRotatorNotification, 5000);
+    // Use configured timing values
+    setTimeout(() => {
+        hideToast(toastEl);
+        rotatorTimeout = setTimeout(showNextRotatorNotification, LETUP_CONFIG.rotatorInterval);
+    }, LETUP_CONFIG.autoHideDelay);
 }
 
 /************************************************
@@ -506,9 +526,9 @@ function formatIndonesianDay(dateString) {
  * 6. showToast() - Creates & displays a new toast
  ************************************************/
 function showToast(buyer, product, hhmm, timestamp) {
-    // Limit to max 3 toast elements
+    // Limit to max toast elements based on config
     const container = document.getElementById("toast-container");
-    if (container.children.length >= 3) {
+    if (container.children.length >= LETUP_CONFIG.maxToasts) {
         // Remove the oldest toast
         container.removeChild(container.firstElementChild);
     }
@@ -557,13 +577,13 @@ function showToast(buyer, product, hhmm, timestamp) {
     toastEl.appendChild(contentEl);
 
     // Close button
-    // const closeBtn = document.createElement("button");
-    // closeBtn.className = "toast-close";
-    // closeBtn.innerText = "x";
-    // closeBtn.addEventListener("click", () => {
-    //  hideToast(toastEl);
-    // });
-    // toastEl.appendChild(closeBtn);
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "toast-close";
+    closeBtn.innerText = "x";
+    closeBtn.addEventListener("click", () => {
+      hideToast(toastEl);
+     });
+         toastEl.appendChild(closeBtn);
 
     // Append to container
     container.appendChild(toastEl);
@@ -573,8 +593,8 @@ function showToast(buyer, product, hhmm, timestamp) {
         toastEl.classList.add("show");
     });
   
-    // Auto-remove after 5 seconds
-    // setTimeout(() => hideToast(toastEl), 5000);
+    // Auto-remove after configured delay
+    setTimeout(() => hideToast(toastEl), LETUP_CONFIG.autoHideDelay);
   
   return toastEl;
 }
