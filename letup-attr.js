@@ -743,13 +743,13 @@ function showNextRotatorNotification() {
     // Display the notification and get reference to the element
     const toastEl = showPaymentConfirmationToast(buyer, productName, createdAt, lastUpdatedAt);
 
-    // First timeout: Hide the toast after displaying it for 5 seconds
+    // First timeout: Hide the toast after displaying it for configured delay
     setTimeout(() => {
         hideToast(toastEl);
 
-        // Second timeout: Wait another 5 seconds before showing next notification
-        rotatorTimeout = setTimeout(showNextRotatorNotification, 5000);
-    }, 5000);
+        // Second timeout: Wait for configured interval before showing next notification
+        rotatorTimeout = setTimeout(showNextRotatorNotification, LETUP_CONFIG.rotatorInterval);
+    }, LETUP_CONFIG.autoHideDelay);
 }
 
 // Cleanup function when page unloads
