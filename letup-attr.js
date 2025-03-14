@@ -426,7 +426,23 @@ async function fetchRotatorData() {
             .gte('created_at', sevenDaysAgo.toISOString())
             .limit(10);
 
-        // Rest of the function remains the same
+        if (error) {
+            console.error("Error fetching rotator data:", error);
+            return;
+        }
+        
+        rotatorData = data || [];
+
+        // Randomize order if desired
+        rotatorData.sort(() => Math.random() - 0.5);
+
+        console.log(`Fetched ${rotatorData.length} entries for rotator notifications`);
+
+        // If we got new data & rotator not running, start it
+        if (!isRotatorRunning && rotatorData.length > 0) {
+            isRotatorRunning = true;
+            showNextRotatorNotification();
+        }
     } catch (err) {
         console.error('Error fetching rotator data:', err);
     }
@@ -446,9 +462,9 @@ async function updateNotificationDisplayed(id) {
     }
 }
 
+// FIX THIS FUNCTION - Update to use configuration values
 function showNextRotatorNotification() {
     if (rotatorData.length === 0) {
-        // No data => stop
         isRotatorRunning = false;
         return;
     }
@@ -457,15 +473,20 @@ function showNextRotatorNotification() {
     const item = rotatorData.shift();
     rotatorData.push(item);
 
-    // Example: showPaymentConfirmationToast or showToast
+    // Get values from the data item
     const buyer = item.buyer_name || 'Seseorang';
     const productName = item.product_name || 'produk ini';
     const createdAt = item.created_at;
-    showPaymentConfirmationToast(buyer, productName, createdAt);
+    const lastUpdatedAt = item.last_updated_at || item.created_at; // Fallback to created_at
 
-    // Use configured timing values
+    // Display the notification and get reference to the element
+    const toastEl = showPaymentConfirmationToast(buyer, productName, createdAt, lastUpdatedAt);
+
+    // First timeout: Hide the toast after displaying it for configured delay
     setTimeout(() => {
         hideToast(toastEl);
+
+        // Second timeout: Wait for configured interval before showing next notification
         rotatorTimeout = setTimeout(showNextRotatorNotification, LETUP_CONFIG.rotatorInterval);
     }, LETUP_CONFIG.autoHideDelay);
 }
@@ -658,14 +679,16 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
 
     toastEl.appendChild(contentEl);
 
-    // Close button
-    // const closeBtn = document.createElement("button");
-    // closeBtn.className = "toast-close";
-    // closeBtn.innerText = "x";
-    // closeBtn.addEventListener("click", () => {
-    //  hideToast(toastEl);
-    // });
-    // toastEl.appendChild(closeBtn);
+    // Close button - only add if showDismissButton is true
+    if (LETUP_CONFIG.showDismissButton) {
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "toast-close";
+        closeBtn.innerText = "x";
+        closeBtn.addEventListener("click", () => {
+            hideToast(toastEl);
+        });
+        toastEl.appendChild(closeBtn);
+    }
 
     // Append to container
     container.appendChild(toastEl);
