@@ -537,35 +537,6 @@ async function updateNotificationDisplayed(id) {
     }
 }
 
-// FIX THIS FUNCTION - Update to use configuration values
-function showNextRotatorNotification() {
-    if (rotatorData.length === 0) {
-        isRotatorRunning = false;
-        return;
-    }
-
-    // Take the first item, push it to the end (to rotate through them)
-    const item = rotatorData.shift();
-    rotatorData.push(item);
-
-    // Get values from the data item
-    const buyer = item.buyer_name || 'Seseorang';
-    const productName = item.product_name || 'produk ini';
-    const createdAt = item.created_at;
-    const lastUpdatedAt = item.last_updated_at || item.created_at; // Fallback to created_at
-
-    // Display the notification and get reference to the element
-    const toastEl = showPaymentConfirmationToast(buyer, productName, createdAt, lastUpdatedAt);
-
-    // First timeout: Hide the toast after displaying it for configured delay
-    setTimeout(() => {
-        hideToast(toastEl);
-
-        // Second timeout: Wait for configured interval before showing next notification
-        rotatorTimeout = setTimeout(showNextRotatorNotification, LETUP_CONFIG.rotatorInterval);
-    }, LETUP_CONFIG.autoHideDelay);
-}
-
 /************************************************
  * 4. formatHoursMinutes(): extracts hh:mm (24h)
  ************************************************/
