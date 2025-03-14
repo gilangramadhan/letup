@@ -12,7 +12,8 @@ const LETUP_CONFIG = {
     supabaseUrl: 'https://tsaaphhxqbsknszartza.supabase.co', // Default Supabase URL
     supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU', // Default Supabase anon key
     tableName: 'notifications',         // Default table name
-    showDismissButton: false            // Show close button on toasts (default: false)
+    showDismissButton: false,            // Show close button on toasts (default: false)
+    productImageUrl: 'https://placehold.co/64'  // Default product image URL for flip container
 };
 
 /**************************************************
@@ -42,7 +43,7 @@ function addStyles() {
             background-color: #fff;
             border-radius: 24px;
             margin-bottom: 12px;
-            padding: 8px 4px;
+            padding: 14px 18px;
             box-shadow: 0 0 0 1px #0e3f7e0f, 0 1px 1px -0.5px #2a334608,
                 0 2px 2px -1px #2a33460a, 0 3px 3px -1.5px #2a33460a,
                 0 5px 5px -2.5px #2a334608, 0 10px 10px -5px #2a334608,
@@ -87,7 +88,7 @@ function addStyles() {
             flex: 1;
             max-width: 300px;
             line-height: 1.4;
-            margin-right: 15px;
+            margin-left: 15px;
         }
         
         /* Main heading text: smaller but readable */
@@ -133,6 +134,55 @@ function addStyles() {
         .toast-close:hover {
             color: #000;
         }
+        .flip-container {
+    perspective: 1000px; /* Adds perspective for 3D effect */
+    width: 64px;
+    height: 64px;
+}
+
+.flip-img {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d; /* Ensures child elements are rendered in 3D space */
+    animation: flip 0.5s ease-in-out 1 forwards; /* Animation runs once and stays on the last frame */
+    animation-delay: 1.5s; /* Delay before the animation starts */
+}
+
+.flip-img-front, .flip-img-back {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    backface-visibility: hidden; /* Hides the back side of the card during flip */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    border-radius: 50%;
+}
+
+.flip-img-front {
+    /* background-color: #09AFED; /* Front side color */
+}
+
+.flip-img-back {
+    background-color: #FF5733; /* Back side color */
+    transform: rotateY(180deg); /* Initially hides the back side */
+}
+
+.flip-img-back img {
+  border-radius: 50%;
+}
+
+@keyframes flip {
+    0% {
+        transform: rotateY(0deg); /* Starts with front side visible */
+    }
+    100% {
+        transform: rotateY(180deg); /* Ends with back side visible */
+    }
+}
     `;
     document.head.appendChild(style);
 }
@@ -185,6 +235,10 @@ addStyles();
         if (currentScript.hasAttribute('data-rotator-limit')) {
             const value = parseInt(currentScript.getAttribute('data-rotator-limit'));
             if (!isNaN(value)) LETUP_CONFIG.rotatorDataLimit = value;
+        }
+
+        if (currentScript.hasAttribute('data-product-image')) {
+            LETUP_CONFIG.productImageUrl = currentScript.getAttribute('data-product-image');
         }
 
         // Parse Supabase credentials
@@ -247,6 +301,10 @@ addStyles();
     if (container.hasAttribute('data-rotator-limit')) {
         const value = parseInt(container.getAttribute('data-rotator-limit'));
         if (!isNaN(value)) LETUP_CONFIG.rotatorDataLimit = value;
+    }
+
+    if (container.hasAttribute('data-product-image')) {
+        LETUP_CONFIG.productImageUrl = container.getAttribute('data-product-image');
     }
 
     // Parse Supabase credentials
@@ -575,9 +633,22 @@ function showToast(buyer, product, hhmm, timestamp) {
     const toastEl = document.createElement("div");
     toastEl.className = "toast";
 
-    // Lottie Player
+    // Create flip container structure
+    const flipContainer = document.createElement("div");
+    flipContainer.className = "flip-container";
+    
+    const flipImg = document.createElement("div");
+    flipImg.className = "flip-img";
+    
+    const flipImgFront = document.createElement("div");
+    flipImgFront.className = "flip-img-front";
+    
+    const flipImgBack = document.createElement("div");
+    flipImgBack.className = "flip-img-back";
+    
+    // Lottie Player (for front)
     const lottieEl = document.createElement("dotlottie-player");
-    lottieEl.setAttribute("src", "https://lottie.host/ed05c047-00d3-4505-ba24-edc225e0f9b9/eLlGabWFgq.lottie");
+    lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
     lottieEl.setAttribute("background", "transparent");
     lottieEl.setAttribute("speed", "1");
     lottieEl.setAttribute("direction", "1");
@@ -585,9 +656,23 @@ function showToast(buyer, product, hhmm, timestamp) {
     lottieEl.setAttribute("autoplay", "");
     lottieEl.style.width = "64px";
     lottieEl.style.height = "64px";
-    lottieEl.style.marginRight = "4px";
-    lottieEl.style.flexShrink = "0";
-    toastEl.appendChild(lottieEl);
+    flipImgFront.appendChild(lottieEl);
+    
+    // Back side - use configured image URL
+    const imgEl = document.createElement("img");
+    imgEl.src = LETUP_CONFIG.productImageUrl;
+    imgEl.width = 64;
+    imgEl.height = 64;
+    imgEl.alt = "Foto produk";
+    flipImgBack.appendChild(imgEl);
+    
+    // Assemble the flip container
+    flipImg.appendChild(flipImgFront);
+    flipImg.appendChild(flipImgBack);
+    flipContainer.appendChild(flipImg);
+    
+    // Add to toast
+    toastEl.appendChild(flipContainer);
 
     // Content wrapper
     const contentEl = document.createElement("div");
@@ -653,19 +738,46 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     const toastEl = document.createElement("div");
     toastEl.className = "toast payment-toast"; // Add a distinguishing class
 
-    // Lottie Player (can use a different animation for payment)
+    // Create flip container structure
+    const flipContainer = document.createElement("div");
+    flipContainer.className = "flip-container";
+    
+    const flipImg = document.createElement("div");
+    flipImg.className = "flip-img";
+    
+    const flipImgFront = document.createElement("div");
+    flipImgFront.className = "flip-img-front";
+    
+    const flipImgBack = document.createElement("div");
+    flipImgBack.className = "flip-img-back";
+    
+    // Lottie Player (for front)
     const lottieEl = document.createElement("dotlottie-player");
-    lottieEl.setAttribute("src", "https://lottie.host/5c984d88-4011-4916-9921-6c38eff7654e/iR7fvY00YL.lottie");
+    lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
     lottieEl.setAttribute("background", "transparent");
     lottieEl.setAttribute("speed", "1");
     lottieEl.setAttribute("direction", "1");
     lottieEl.setAttribute("playMode", "normal");
     lottieEl.setAttribute("autoplay", "");
-    lottieEl.style.width = "59px";
-    lottieEl.style.height = "59px";
-    lottieEl.style.marginRight = "4px";
-    lottieEl.style.flexShrink = "0";
-    toastEl.appendChild(lottieEl);
+    lottieEl.style.width = "64px";
+    lottieEl.style.height = "64px";
+    flipImgFront.appendChild(lottieEl);
+    
+    // Back side - use configured image URL
+    const imgEl = document.createElement("img");
+    imgEl.src = LETUP_CONFIG.productImageUrl;
+    imgEl.width = 64;
+    imgEl.height = 64;
+    imgEl.alt = "Foto produk";
+    flipImgBack.appendChild(imgEl);
+    
+    // Assemble the flip container
+    flipImg.appendChild(flipImgFront);
+    flipImg.appendChild(flipImgBack);
+    flipContainer.appendChild(flipImg);
+    
+    // Add to toast
+    toastEl.appendChild(flipContainer);
 
     // Content wrapper
     const contentEl = document.createElement("div");
