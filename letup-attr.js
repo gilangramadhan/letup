@@ -13,7 +13,8 @@ const LETUP_CONFIG = {
     supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU', // Default Supabase anon key
     tableName: 'notifications',         // Default table name
     showDismissButton: false,            // Show close button on toasts (default: false)
-    productImageUrl: 'https://placehold.co/64'  // Default product image URL for flip container
+    productImageUrl: 'https://placehold.co/64',  // Default product image URL
+    productImageConfigured: false                // Flag to track if image is configured
 };
 
 /**************************************************
@@ -120,8 +121,8 @@ function addStyles() {
         /* Close button on the right */
         .toast-close {
             position: relative;
-            top: -20px;
-            left: 11px;
+            top: -25px;
+            left: 20px;
             margin-left: 8px;
             cursor: pointer;
             background: none;
@@ -239,6 +240,7 @@ addStyles();
 
         if (currentScript.hasAttribute('data-product-image')) {
             LETUP_CONFIG.productImageUrl = currentScript.getAttribute('data-product-image');
+            LETUP_CONFIG.productImageConfigured = true; // Mark as explicitly configured
         }
 
         // Parse Supabase credentials
