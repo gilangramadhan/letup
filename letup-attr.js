@@ -56,7 +56,7 @@ function addStyles() {
         }
         
         .payment-toast {
-            padding: 8px 8px;
+            padding: 14px 18px;
             background: linear-gradient(180deg, rgb(255, 255, 255) 0%, rgb(58, 201, 104, 0.08) 100%);
             background-color: #fff;
         }
