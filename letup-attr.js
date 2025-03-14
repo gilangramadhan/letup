@@ -707,7 +707,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     });
   
       // Optionally auto-remove
-    // setTimeout(() => hideToast(toastEl), 5000);
+    setTimeout(() => hideToast(toastEl), 5000);
 
     // IMPORTANT: Return the element instead of auto-removing it
     return toastEl;
