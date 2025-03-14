@@ -13,8 +13,8 @@ const LETUP_CONFIG = {
     supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU', // Default Supabase anon key
     tableName: 'notifications',         // Default table name
     showDismissButton: false,            // Show close button on toasts (default: false)
-    productImageUrl: 'https://placehold.co/64',  // Default product image URL
-    productImageConfigured: false                // Flag to track if image is configured
+    productImageUrl: null,              // Default to null to indicate no image is configured
+    productImageConfigured: false       // Flag to track if user explicitly configured an image
 };
 
 /**************************************************
@@ -307,6 +307,7 @@ addStyles();
 
     if (container.hasAttribute('data-product-image')) {
         LETUP_CONFIG.productImageUrl = container.getAttribute('data-product-image');
+        LETUP_CONFIG.productImageConfigured = true; // Mark as explicitly configured
     }
 
     // Parse Supabase credentials
@@ -606,46 +607,63 @@ function showToast(buyer, product, hhmm, timestamp) {
     const toastEl = document.createElement("div");
     toastEl.className = "toast";
 
-    // Create flip container structure
-    const flipContainer = document.createElement("div");
-    flipContainer.className = "flip-container";
-    
-    const flipImg = document.createElement("div");
-    flipImg.className = "flip-img";
-    
-    const flipImgFront = document.createElement("div");
-    flipImgFront.className = "flip-img-front";
-    
-    const flipImgBack = document.createElement("div");
-    flipImgBack.className = "flip-img-back";
-    
-    // Lottie Player (for front)
-    const lottieEl = document.createElement("dotlottie-player");
-    lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
-    lottieEl.setAttribute("background", "transparent");
-    lottieEl.setAttribute("speed", "1");
-    lottieEl.setAttribute("direction", "1");
-    lottieEl.setAttribute("playMode", "normal");
-    lottieEl.setAttribute("autoplay", "");
-    lottieEl.style.width = "64px";
-    lottieEl.style.height = "64px";
-    flipImgFront.appendChild(lottieEl);
-    
-    // Back side - use configured image URL
-    const imgEl = document.createElement("img");
-    imgEl.src = LETUP_CONFIG.productImageUrl;
-    imgEl.width = 64;
-    imgEl.height = 64;
-    imgEl.alt = "Foto produk";
-    flipImgBack.appendChild(imgEl);
-    
-    // Assemble the flip container
-    flipImg.appendChild(flipImgFront);
-    flipImg.appendChild(flipImgBack);
-    flipContainer.appendChild(flipImg);
-    
-    // Add to toast
-    toastEl.appendChild(flipContainer);
+    // Conditionally create either flip container or direct Lottie player
+    if (LETUP_CONFIG.productImageConfigured) {
+        // Create flip container structure
+        const flipContainer = document.createElement("div");
+        flipContainer.className = "flip-container";
+        
+        const flipImg = document.createElement("div");
+        flipImg.className = "flip-img";
+        
+        const flipImgFront = document.createElement("div");
+        flipImgFront.className = "flip-img-front";
+        
+        const flipImgBack = document.createElement("div");
+        flipImgBack.className = "flip-img-back";
+        
+        // Lottie Player (for front)
+        const lottieEl = document.createElement("dotlottie-player");
+        lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
+        lottieEl.setAttribute("background", "transparent");
+        lottieEl.setAttribute("speed", "1");
+        lottieEl.setAttribute("direction", "1");
+        lottieEl.setAttribute("playMode", "normal");
+        lottieEl.setAttribute("autoplay", "");
+        lottieEl.style.width = "64px";
+        lottieEl.style.height = "64px";
+        flipImgFront.appendChild(lottieEl);
+        
+        // Back side - use configured image URL
+        const imgEl = document.createElement("img");
+        imgEl.src = LETUP_CONFIG.productImageUrl;
+        imgEl.width = 64;
+        imgEl.height = 64;
+        imgEl.alt = "Foto produk";
+        flipImgBack.appendChild(imgEl);
+        
+        // Assemble the flip container
+        flipImg.appendChild(flipImgFront);
+        flipImg.appendChild(flipImgBack);
+        flipContainer.appendChild(flipImg);
+        
+        // Add to toast
+        toastEl.appendChild(flipContainer);
+    } else {
+        // Original behavior - just the Lottie player with no flip effect
+        const lottieEl = document.createElement("dotlottie-player");
+        lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
+        lottieEl.setAttribute("background", "transparent");
+        lottieEl.setAttribute("speed", "1");
+        lottieEl.setAttribute("direction", "1");
+        lottieEl.setAttribute("playMode", "normal");
+        lottieEl.setAttribute("autoplay", "");
+        lottieEl.style.width = "64px";
+        lottieEl.style.height = "64px";
+        lottieEl.style.marginRight = "4px";
+        lottieEl.style.flexShrink = "0";
+        toastEl.appendChild(lottieEl);
+    }
 
     // Content wrapper
     const contentEl = document.createElement("div");
@@ -711,46 +729,63 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     const toastEl = document.createElement("div");
     toastEl.className = "toast payment-toast"; // Add a distinguishing class
 
-    // Create flip container structure
-    const flipContainer = document.createElement("div");
-    flipContainer.className = "flip-container";
-    
-    const flipImg = document.createElement("div");
-    flipImg.className = "flip-img";
-    
-    const flipImgFront = document.createElement("div");
-    flipImgFront.className = "flip-img-front";
-    
-    const flipImgBack = document.createElement("div");
-    flipImgBack.className = "flip-img-back";
-    
-    // Lottie Player (for front)
-    const lottieEl = document.createElement("dotlottie-player");
-    lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
-    lottieEl.setAttribute("background", "transparent");
-    lottieEl.setAttribute("speed", "1");
-    lottieEl.setAttribute("direction", "1");
-    lottieEl.setAttribute("playMode", "normal");
-    lottieEl.setAttribute("autoplay", "");
-    lottieEl.style.width = "64px";
-    lottieEl.style.height = "64px";
-    flipImgFront.appendChild(lottieEl);
-    
-    // Back side - use configured image URL
-    const imgEl = document.createElement("img");
-    imgEl.src = LETUP_CONFIG.productImageUrl;
-    imgEl.width = 64;
-    imgEl.height = 64;
-    imgEl.alt = "Foto produk";
-    flipImgBack.appendChild(imgEl);
-    
-    // Assemble the flip container
-    flipImg.appendChild(flipImgFront);
-    flipImg.appendChild(flipImgBack);
-    flipContainer.appendChild(flipImg);
-    
-    // Add to toast
-    toastEl.appendChild(flipContainer);
+    // Conditionally create either flip container or direct Lottie player
+    if (LETUP_CONFIG.productImageConfigured) {
+        // Create flip container structure
+        const flipContainer = document.createElement("div");
+        flipContainer.className = "flip-container";
+        
+        const flipImg = document.createElement("div");
+        flipImg.className = "flip-img";
+        
+        const flipImgFront = document.createElement("div");
+        flipImgFront.className = "flip-img-front";
+        
+        const flipImgBack = document.createElement("div");
+        flipImgBack.className = "flip-img-back";
+        
+        // Lottie Player (for front)
+        const lottieEl = document.createElement("dotlottie-player");
+        lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
+        lottieEl.setAttribute("background", "transparent");
+        lottieEl.setAttribute("speed", "1");
+        lottieEl.setAttribute("direction", "1");
+        lottieEl.setAttribute("playMode", "normal");
+        lottieEl.setAttribute("autoplay", "");
+        lottieEl.style.width = "64px";
+        lottieEl.style.height = "64px";
+        flipImgFront.appendChild(lottieEl);
+        
+        // Back side - use configured image URL
+        const imgEl = document.createElement("img");
+        imgEl.src = LETUP_CONFIG.productImageUrl;
+        imgEl.width = 64;
+        imgEl.height = 64;
+        imgEl.alt = "Foto produk";
+        flipImgBack.appendChild(imgEl);
+        
+        // Assemble the flip container
+        flipImg.appendChild(flipImgFront);
+        flipImg.appendChild(flipImgBack);
+        flipContainer.appendChild(flipImg);
+        
+        // Add to toast
+        toastEl.appendChild(flipContainer);
+    } else {
+        // Original behavior - just the Lottie player with no flip effect
+        const lottieEl = document.createElement("dotlottie-player");
+        lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
+        lottieEl.setAttribute("background", "transparent");
+        lottieEl.setAttribute("speed", "1");
+        lottieEl.setAttribute("direction", "1");
+        lottieEl.setAttribute("playMode", "normal");
+        lottieEl.setAttribute("autoplay", "");
+        lottieEl.style.width = "64px";
+        lottieEl.style.height = "64px";
+        lottieEl.style.marginRight = "4px";
+        lottieEl.style.flexShrink = "0";
+        toastEl.appendChild(lottieEl);
+    }
 
     // Content wrapper
     const contentEl = document.createElement("div");
