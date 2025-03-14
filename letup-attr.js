@@ -322,6 +322,12 @@ function initSupabase() {
     // 3) Create the client
     supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    console.log("Supabase initialized. Configuration:", {
+        enableRealtime: LETUP_CONFIG.enableRealtimeNotifications,
+        enableRotator: LETUP_CONFIG.enableRotatorNotifications,
+        tableName: LETUP_CONFIG.tableName
+    });
+
     // Then initialize the features based on configuration
     if (LETUP_CONFIG.enableRealtimeNotifications) {
         initRealtimeNotifications();
@@ -597,14 +603,16 @@ function showToast(buyer, product, hhmm, timestamp) {
 
     toastEl.appendChild(contentEl);
 
-    // Close button
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "toast-close";
-    closeBtn.innerText = "x";
-    closeBtn.addEventListener("click", () => {
-      hideToast(toastEl);
-     });
-         toastEl.appendChild(closeBtn);
+    // Close button - only add if showDismissButton is true
+    if (LETUP_CONFIG.showDismissButton) {
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "toast-close";
+        closeBtn.innerText = "x";
+        closeBtn.addEventListener("click", () => {
+            hideToast(toastEl);
+        });
+        toastEl.appendChild(closeBtn);
+    }
 
     // Append to container
     container.appendChild(toastEl);
