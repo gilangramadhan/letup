@@ -7,6 +7,7 @@ const LETUP_CONFIG = {
     maxToasts: 3,                       // Maximum number of toasts to show at once
     rotatorInterval: 5000,              // Time between rotator notifications (milliseconds)
     autoHideDelay: 5000,                // Time before auto-hiding toasts (milliseconds)
+    rotatorDataLimit: 10,               // Maximum number of notifications to fetch for rotator (default: 10)
     scrollTriggerPoint: 200,            // Scroll distance to trigger loading (pixels - fixed)
     supabaseUrl: 'https://tsaaphhxqbsknszartza.supabase.co', // Default Supabase URL
     supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU', // Default Supabase anon key
@@ -19,7 +20,7 @@ const LETUP_CONFIG = {
  **************************************************/
 function addStyles() {
     if (document.getElementById('letup-toast-styles')) return;
-    
+
     const style = document.createElement('style');
     style.id = 'letup-toast-styles';
     style.textContent = `
@@ -146,55 +147,60 @@ addStyles();
     // Try to find the current script
     const scripts = document.getElementsByTagName('script');
     const currentScript = scripts[scripts.length - 1]; // Usually the last script is the current one
-    
+
     // Check for script data attributes
     if (currentScript) {
         // Parse boolean attributes
         if (currentScript.hasAttribute('data-enable-realtime')) {
-            LETUP_CONFIG.enableRealtimeNotifications = 
+            LETUP_CONFIG.enableRealtimeNotifications =
                 currentScript.getAttribute('data-enable-realtime') === 'true';
         }
-        
+
         if (currentScript.hasAttribute('data-enable-rotator')) {
-            LETUP_CONFIG.enableRotatorNotifications = 
+            LETUP_CONFIG.enableRotatorNotifications =
                 currentScript.getAttribute('data-enable-rotator') === 'true';
         }
-        
+
         if (currentScript.hasAttribute('data-dismiss')) {
-            LETUP_CONFIG.showDismissButton = 
+            LETUP_CONFIG.showDismissButton =
                 currentScript.getAttribute('data-dismiss') === 'true';
         }
-        
+
         // Parse numeric attributes
         if (currentScript.hasAttribute('data-max-toasts')) {
             const value = parseInt(currentScript.getAttribute('data-max-toasts'));
             if (!isNaN(value)) LETUP_CONFIG.maxToasts = value;
         }
-        
+
         if (currentScript.hasAttribute('data-rotator-interval')) {
             const value = parseInt(currentScript.getAttribute('data-rotator-interval'));
             if (!isNaN(value)) LETUP_CONFIG.rotatorInterval = value;
         }
-        
+
         if (currentScript.hasAttribute('data-auto-hide-delay')) {
             const value = parseInt(currentScript.getAttribute('data-auto-hide-delay'));
             if (!isNaN(value)) LETUP_CONFIG.autoHideDelay = value;
         }
-        
+
+        if (currentScript.hasAttribute('data-rotator-limit')) {
+            const value = parseInt(currentScript.getAttribute('data-rotator-limit'));
+            if (!isNaN(value)) LETUP_CONFIG.rotatorDataLimit = value;
+        }
+
         // Parse Supabase credentials
         if (currentScript.hasAttribute('data-supabase-url')) {
             LETUP_CONFIG.supabaseUrl = currentScript.getAttribute('data-supabase-url');
         }
-        
+
         if (currentScript.hasAttribute('data-supabase-key')) {
             LETUP_CONFIG.supabaseKey = currentScript.getAttribute('data-supabase-key');
         }
-        
+
         // Parse table name
         if (currentScript.hasAttribute('data-table-name')) {
             LETUP_CONFIG.tableName = currentScript.getAttribute('data-table-name');
         }
-        
+
         console.log("Notifications: Configured from data attributes", LETUP_CONFIG);
     }
 })();
@@ -205,53 +211,58 @@ addStyles();
 (function loadConfigFromContainer() {
     const container = document.getElementById('toast-container');
     if (!container) return; // Container not found
-    
+
     // Parse boolean attributes
     if (container.hasAttribute('data-enable-realtime')) {
-        LETUP_CONFIG.enableRealtimeNotifications = 
+        LETUP_CONFIG.enableRealtimeNotifications =
             container.getAttribute('data-enable-realtime') === 'true';
     }
-    
+
     if (container.hasAttribute('data-enable-rotator')) {
-        LETUP_CONFIG.enableRotatorNotifications = 
+        LETUP_CONFIG.enableRotatorNotifications =
             container.getAttribute('data-enable-rotator') === 'true';
     }
-    
+
     if (container.hasAttribute('data-dismiss')) {
-        LETUP_CONFIG.showDismissButton = 
+        LETUP_CONFIG.showDismissButton =
             container.getAttribute('data-dismiss') === 'true';
     }
-    
+
     // Parse numeric attributes
     if (container.hasAttribute('data-max-toasts')) {
         const value = parseInt(container.getAttribute('data-max-toasts'));
         if (!isNaN(value)) LETUP_CONFIG.maxToasts = value;
     }
-    
+
     if (container.hasAttribute('data-rotator-interval')) {
         const value = parseInt(container.getAttribute('data-rotator-interval'));
         if (!isNaN(value)) LETUP_CONFIG.rotatorInterval = value;
     }
-    
+
     if (container.hasAttribute('data-auto-hide-delay')) {
         const value = parseInt(container.getAttribute('data-auto-hide-delay'));
         if (!isNaN(value)) LETUP_CONFIG.autoHideDelay = value;
     }
-    
+
+    if (container.hasAttribute('data-rotator-limit')) {
+        const value = parseInt(container.getAttribute('data-rotator-limit'));
+        if (!isNaN(value)) LETUP_CONFIG.rotatorDataLimit = value;
+    }
+
     // Parse Supabase credentials
     if (container.hasAttribute('data-supabase-url')) {
         LETUP_CONFIG.supabaseUrl = container.getAttribute('data-supabase-url');
     }
-    
+
     if (container.hasAttribute('data-supabase-key')) {
         LETUP_CONFIG.supabaseKey = container.getAttribute('data-supabase-key');
     }
-    
+
     // Parse table name
     if (container.hasAttribute('data-table-name')) {
         LETUP_CONFIG.tableName = container.getAttribute('data-table-name');
     }
-    
+
     console.log("Notifications: Configured from container attributes", LETUP_CONFIG);
 })();
 
@@ -271,7 +282,7 @@ function loadLottiePlayer() {
     if (document.querySelector('script[src*="dotlottie-player"]')) {
         return; // Script already exists
     }
-    
+
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/@dotlottie/player-component/dist/dotlottie-player.min.js";
     document.head.appendChild(script);
@@ -314,7 +325,7 @@ setTimeout(lazyLoadSupabase, 1000);
 function initSupabase() {
     // 1) Access the UMD global
     const { createClient } = window.supabase;
-    
+
     // 2) Use Supabase credentials from configuration
     const SUPABASE_URL = LETUP_CONFIG.supabaseUrl;
     const SUPABASE_ANON_KEY = LETUP_CONFIG.supabaseKey;
@@ -332,7 +343,7 @@ function initSupabase() {
     if (LETUP_CONFIG.enableRealtimeNotifications) {
         initRealtimeNotifications();
     }
-    
+
     if (LETUP_CONFIG.enableRotatorNotifications) {
         initRotatorNotifications();
     }
@@ -343,7 +354,7 @@ function initSupabase() {
 ************************************************/
 function initRealtimeNotifications() {
     console.log(`Initializing realtime notifications with table: ${LETUP_CONFIG.tableName}`);
-    
+
     // Subscribe to realtime notifications
     realtimeSubscription = supabase
         .channel('notifications-channel')
@@ -391,7 +402,7 @@ async function updateNotificationDisplayed(id) {
     try {
         await supabase
             .from(LETUP_CONFIG.tableName) // Use configurable table name
-            .update({ 
+            .update({
                 displayed: true,
                 last_updated_at: new Date().toISOString()
             })
@@ -430,13 +441,13 @@ async function fetchRotatorData() {
             .eq('event_type', 'order.updated')
             .eq('payment_status', 'paid')
             .gte('created_at', sevenDaysAgo.toISOString())
-            .limit(10);
+            .limit(LETUP_CONFIG.rotatorDataLimit); // Use the configurable limit
 
         if (error) {
             console.error("Error fetching rotator data:", error);
             return;
         }
-        
+
         rotatorData = data || [];
 
         // Randomize order if desired
@@ -458,7 +469,7 @@ async function updateNotificationDisplayed(id) {
     try {
         await supabase
             .from(LETUP_CONFIG.tableName) // Use the configurable table name
-            .update({ 
+            .update({
                 displayed: true,
                 last_updated_at: new Date().toISOString()
             })
@@ -540,12 +551,12 @@ function formatRelativeTime(dateString) {
 function formatIndonesianDay(dateString) {
     const date = new Date(dateString);
     const dayIndex = date.getDay();
-    
+
     // Array of Indonesian day names
     const indonesianDays = [
         "Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
     ];
-    
+
     return indonesianDays[dayIndex];
 }
 
@@ -621,11 +632,11 @@ function showToast(buyer, product, hhmm, timestamp) {
     requestAnimationFrame(() => {
         toastEl.classList.add("show");
     });
-  
+
     // Auto-remove after configured delay
     setTimeout(() => hideToast(toastEl), LETUP_CONFIG.autoHideDelay);
-  
-  return toastEl;
+
+    return toastEl;
 }
 /************************************************
  * 7. Modified showPaymentConfirmationToast() - now includes hh:mm time
@@ -668,7 +679,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
 
     // Subtext with both relative time AND hh:mm format
     // Get the Indonesian day name
-    const dayName = lastUpdatedAt ? formatIndonesianDay(lastUpdatedAt) : ""; 
+    const dayName = lastUpdatedAt ? formatIndonesianDay(lastUpdatedAt) : "";
     const subtextEl = document.createElement("div");
     subtextEl.className = "toast-subtext";
 
@@ -705,9 +716,9 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     requestAnimationFrame(() => {
         toastEl.classList.add("show");
     });
-  
-      // Optionally auto-remove
-    setTimeout(() => hideToast(toastEl), 5000);
+
+    // Use the configured auto-hide delay instead of hardcoded 5000
+    setTimeout(() => hideToast(toastEl), LETUP_CONFIG.autoHideDelay);
 
     // IMPORTANT: Return the element instead of auto-removing it
     return toastEl;
