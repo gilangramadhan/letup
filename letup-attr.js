@@ -740,21 +740,52 @@ function formatHoursMinutes(dateString) {
  * 5. formatRelativeTime(): human readable time
  ************************************************/
 function formatRelativeTime(dateString) {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
-    if (diffInSeconds < 60) {
-        return "Baru saja";
-    } else if (diffInSeconds < 3600) {
-        const minutes = Math.floor(diffInSeconds / 60);
-        return `${minutes} menit lalu`;
-    } else if (diffInSeconds < 86400) {
-        const hours = Math.floor(diffInSeconds / 3600);
-        return `${hours} jam lalu`;
-    } else {
-        const days = Math.floor(diffInSeconds / 86400);
-        return `${days} hari lalu`;
+    try {
+        const now = new Date();
+        let date;
+        
+        // Better date parsing with validation
+        if (typeof dateString === 'string') {
+            // Handle ISO string format from Supabase
+            date = new Date(dateString);
+            
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                console.error("Invalid date format received:", dateString);
+                return "Beberapa waktu lalu"; // Fallback for invalid dates
+            }
+        } else {
+            console.error("Invalid date input type:", typeof dateString);
+            return "Beberapa waktu lalu"; // Fallback
+        }
+        
+        // Calculate difference in seconds
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        // Log for debugging
+        console.log("Date difference calculation:", {
+            now: now.toISOString(),
+            inputDate: date.toISOString(),
+            diffInSeconds,
+            diffInDays: Math.floor(diffInSeconds / 86400)
+        });
+        
+        if (diffInSeconds < 60) {
+            return "Baru saja";
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60);
+            return `${minutes} menit lalu`;
+        } else if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return `${hours} jam lalu`;
+        } else {
+            const days = Math.floor(diffInSeconds / 86400);
+            // Cap at 7 days to prevent extreme values
+            return days > 7 ? "Seminggu lalu" : `${days} hari lalu`;
+        }
+    } catch (error) {
+        console.error("Error formatting relative time:", error);
+        return "Beberapa waktu lalu"; // Fallback in case of any errors
     }
 }
 
@@ -1008,7 +1039,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     subtextEl.className = "toast-subtext";
 
     // Get human-readable relative time
-    const relativeTime = formatRelativeTime(timestamp);
+    const relativeTime = formatRelativeTime(timestamp); // timestamp is createdAt
 
     // Format the lastUpdatedAt as hh:mm
     const hhmm = lastUpdatedAt ? formatHoursMinutes(lastUpdatedAt) : "";
