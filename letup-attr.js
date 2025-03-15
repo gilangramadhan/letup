@@ -804,6 +804,28 @@ function formatIndonesianDay(dateString) {
     return indonesianDays[dayIndex];
 }
 
+/************************************************
+ * New Function: censorName(): masks buyer names for privacy
+ ************************************************/
+function censorName(name) {
+    if (!name) return "Seseorang";
+    
+    // Handle very short names
+    if (name.length <= 3) {
+        return name[0] + "**";
+    }
+    
+    // For longer names, keep first 2 chars and last char, replace middle with asterisks
+    const firstPart = name.substring(0, 2);
+    const lastPart = name.substring(name.length - 1);
+    const middleLength = name.length - 3;
+    
+    // Create asterisks based on name length (at least 2)
+    const asterisks = '*'.repeat(Math.max(2, middleLength));
+    
+    return firstPart + asterisks + lastPart;
+}
+
 /**************************************************
  * Create or get the toast container with position class
  **************************************************/
@@ -902,11 +924,13 @@ function showToast(buyer, product, hhmm, timestamp) {
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
+    // Censor the buyer name for privacy
+    const censoredBuyer = censorName(buyer);
+
     // Heading - use configurable checkout text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${buyer} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
-    contentEl.appendChild(headingEl);
+    headingEl.innerHTML = `${censoredBuyer} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
 
     // Subtext with inline image (hh:mm)
     if (hhmm) {
@@ -1026,10 +1050,13 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
+    // Censor the buyer name for privacy
+    const censoredBuyer = censorName(buyer);
+
     // Heading with payment confirmation message - use configurable purchase text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${buyer} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${censoredBuyer} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
 
     // Subtext with both relative time AND hh:mm format
@@ -1104,10 +1131,24 @@ function showNextRotatorNotification() {
     const buyer = item.buyer_name || 'Seseorang';
     const productName = item.product_name || 'produk ini';
     const createdAt = item.created_at;
-    const lastUpdatedAt = item.last_updated_at || item.created_at; // Fallback to created_at
+    const lastUpdatedAt = item.last_updated_at || item.created_at;
+    const localFetchTime = item.local_fetch_time; // Use the local fetch time
+
+    // Log for debugging
+    console.log("Showing notification with dates:", {
+        createdAt,
+        lastUpdatedAt,
+        localFetchTime
+    });
 
     // Display the notification and get reference to the element
-    const toastEl = showPaymentConfirmationToast(buyer, productName, createdAt, lastUpdatedAt);
+    const toastEl = showPaymentConfirmationToast(
+        buyer, 
+        productName, 
+        createdAt, 
+        lastUpdatedAt,
+        localFetchTime
+    );
 
     // First timeout: Hide the toast after displaying it for configured delay
     setTimeout(() => {
