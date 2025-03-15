@@ -16,7 +16,8 @@ const LETUP_CONFIG = {
     productImageUrl: null,              // Default to null to indicate no image is configured
     productImageConfigured: false,      // Flag to track if user explicitly configured an image
     checkoutText: 'telah checkout',     // Default text for checkout notifications
-    purchaseText: 'telah membeli'       // Default text for purchase notifications
+    purchaseText: 'telah membeli',       // Default text for purchase notifications
+    position: 'top'                     // Position of toast notifications: 'top' or 'bottom'
 };
 
 /**************************************************
@@ -28,15 +29,27 @@ function addStyles() {
     const style = document.createElement('style');
     style.id = 'letup-toast-styles';
     style.textContent = `
-        /* Toast container */
+        /* Toast container - base styles */
         #toast-container {
             width: 90%;
             max-width: 432px;
             position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             z-index: 9999;
+        }
+        
+        /* Position-specific container styles */
+        #toast-container.position-top {
+            top: 20px;
+            right: 20px;
+            left: auto;
+            transform: none;
+        }
+        
+        #toast-container.position-bottom {
+            bottom: 20px;
+            left: 20px;
+            right: auto;
+            transform: none;
         }
         
         /* Each toast bubble */
@@ -58,6 +71,38 @@ function addStyles() {
             color: rgba(14, 21, 25, 0.8);
             transition: all 0.3s ease;
             position: relative;
+            opacity: 0;
+        }
+        
+        /* Position-specific initial states and animations */
+        .position-top .toast {
+            transform: translateX(100%);  /* Start off-screen to the right */
+        }
+        
+        .position-bottom .toast {
+            transform: translateX(-100%);  /* Start off-screen to the left */
+        }
+        
+        /* Show animations based on position */
+        .position-top .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .position-bottom .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        /* Hide animations based on position */
+        .position-top .toast.hide {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        
+        .position-bottom .toast.hide {
+            opacity: 0;
+            transform: translateX(-100%);
         }
         
         .payment-toast {
@@ -65,15 +110,26 @@ function addStyles() {
             background-color: #fff;
         }
         
-        /* Slide animations */
-        .toast.show {
+        /* Slide animations based on position */
+        .position-top .toast.show {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(0);
         }
         
-        .toast.hide {
+        .position-bottom .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        /* Hide animations based on position */
+        .position-top .toast.hide {
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateX(100%);
+        }
+        
+        .position-bottom .toast.hide {
+            opacity: 0;
+            transform: translateX(-100%);
         }
         
         /* Text container */
@@ -121,14 +177,14 @@ function addStyles() {
         /* Close button */
         .toast-close {
             position: absolute;
-            top: 8px;
-            right: 10px;
+            top: 0;
+            right: 7px;
             cursor: pointer;
             background: none;
             border: none;
-            font-size: 14px;
+            font-size: 11px;
             color: #b4b4b4;
-            padding: 4px;
+            padding: 5px;
         }
         
         .toast-close:hover {
@@ -214,34 +270,42 @@ function addStyles() {
         }
         
         /* Mobile responsiveness */
-        @media (max-width: 480px) {
-            #toast-container {
-                width: 95%;
+        @media (max-width: 768px) {
+            #toast-container.position-top,
+            #toast-container.position-bottom {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+            }
+            
+            #toast-container.position-top {
                 top: 10px;
             }
             
-            .toast {
-                padding: 10px 12px;
-                border-radius: 16px;
+            #toast-container.position-bottom {
+                bottom: 10px;
             }
             
-            .toast-content {
-                margin-left: 8px;
+            /* On mobile, always slide from top/bottom */
+            .position-top .toast {
+                transform: translateY(-100%);
             }
             
-            .toast-heading {
-                font-size: 13px;
+            .position-bottom .toast {
+                transform: translateY(100%);
             }
             
-            .toast-subtext span {
-                font-size: 11px;
+            .position-top .toast.show,
+            .position-bottom .toast.show {
+                transform: translateY(0);
             }
             
-            .flip-container,
-            dotlottie-player {
-                width: 56px;
-                height: 56px;
-                min-width: 56px;
+            .position-top .toast.hide {
+                transform: translateY(-100%);
+            }
+            
+            .position-bottom .toast.hide {
+                transform: translateY(100%);
             }
         }
         
@@ -298,6 +362,14 @@ addStyles();
         if (currentScript.hasAttribute('data-dismiss')) {
             LETUP_CONFIG.showDismissButton =
                 currentScript.getAttribute('data-dismiss') === 'true';
+        }
+
+        // Parse position attribute
+        if (currentScript.hasAttribute('data-position')) {
+            const pos = currentScript.getAttribute('data-position').toLowerCase();
+            if (pos === 'top' || pos === 'bottom') {
+            LETUP_CONFIG.position = pos;
+            }
         }
 
         // Parse string attributes for notification text
@@ -374,6 +446,14 @@ addStyles();
     if (container.hasAttribute('data-dismiss')) {
         LETUP_CONFIG.showDismissButton =
             container.getAttribute('data-dismiss') === 'true';
+    }
+
+    // Parse position attribute
+    if (container.hasAttribute('data-position')) {
+        const pos = container.getAttribute('data-position').toLowerCase();
+        if (pos === 'top' || pos === 'bottom') {
+            LETUP_CONFIG.position = pos;
+        }
     }
 
     // Parse string attributes for notification text
@@ -693,12 +773,33 @@ function formatIndonesianDay(dateString) {
     return indonesianDays[dayIndex];
 }
 
+/**************************************************
+ * Create or get the toast container with position class
+ **************************************************/
+function getToastContainer() {
+    let container = document.getElementById('toast-container');
+    
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    // Apply position class based on configuration
+    container.className = ''; // Clear existing classes
+    container.classList.add(`position-${LETUP_CONFIG.position}`);
+    
+    return container;
+}
+
 /************************************************
  * 6. showToast() - Creates & displays a new toast
  ************************************************/
 function showToast(buyer, product, hhmm, timestamp) {
+    // Get container with proper position class
+    const container = getToastContainer();
+    
     // Limit to max toast elements based on config
-    const container = document.getElementById("toast-container");
     if (container.children.length >= LETUP_CONFIG.maxToasts) {
         // Remove the oldest toast
         container.removeChild(container.firstElementChild);
@@ -819,9 +920,11 @@ function showToast(buyer, product, hhmm, timestamp) {
  * 7. Modified showPaymentConfirmationToast() - now includes hh:mm time
  ************************************************/
 function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) {
-    // Limit to max 3 toast elements
-    const container = document.getElementById("toast-container");
-    if (container.children.length >= 3) {
+    // Get container with proper position class
+    const container = getToastContainer();
+    
+    // Limit to max toast elements based on config
+    if (container.children.length >= LETUP_CONFIG.maxToasts) {
         // Remove the oldest toast
         container.removeChild(container.firstElementChild);
     }
