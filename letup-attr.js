@@ -30,6 +30,7 @@ function addStyles() {
     style.textContent = `
         /* Toast container */
         #toast-container {
+            width: 90%;
             max-width: 432px;
             position: fixed;
             top: 20px;
@@ -38,7 +39,7 @@ function addStyles() {
             z-index: 9999;
         }
         
-        /* Each toast bubble (default: hidden/off-screen) */
+        /* Each toast bubble */
         .toast {
             display: flex;
             align-items: center;
@@ -46,100 +47,143 @@ function addStyles() {
             background-color: #fff;
             border-radius: 24px;
             margin-bottom: 12px;
-            padding: 14px 18px;
+            padding: 12px 14px;
             box-shadow: 0 0 0 1px #0e3f7e0f, 0 1px 1px -0.5px #2a334608,
                 0 2px 2px -1px #2a33460a, 0 3px 3px -1.5px #2a33460a,
                 0 5px 5px -2.5px #2a334608, 0 10px 10px -5px #2a334608,
                 0 24px 24px -8px #2a334608, rgb(23 43 99 / 3%) 0 0 28px;
-            min-width: 300px;
-            max-width: 90vw;
+            width: 100%;
+            max-width: 100%;
             font-family: sans-serif;
             color: rgba(14, 21, 25, 0.8);
             transition: all 0.3s ease;
+            position: relative;
         }
         
         .payment-toast {
-            padding: 14px 18px;
             background: linear-gradient(180deg, rgb(255, 255, 255) 0%, rgb(58, 201, 104, 0.08) 100%);
             background-color: #fff;
         }
         
-        /* Slide down (show) */
+        /* Slide animations */
         .toast.show {
             opacity: 1;
             transform: translateY(0);
         }
         
-        /* Slide up (hide) */
         .toast.hide {
             opacity: 0;
             transform: translateY(-20px);
         }
         
-        /* Rounded logo on the left */
-        .toast-logo {
-            width: 64px;
-            height: 64px;
-            object-fit: cover;
-            margin-right: 14px;
-            background: #eee;
-            flex-shrink: 0;
-        }
-        
-        /* Text container inside the toast */
+        /* Text container */
         .toast-content {
             flex: 1;
-            max-width: 300px;
             line-height: 1.4;
-            margin-left: 15px;
+            margin-left: 10px;
+            overflow: hidden;
         }
         
-        /* Main heading text: smaller but readable */
+        /* Heading text */
         .toast-heading {
             font-size: 14px;
             margin-bottom: 4px;
-        }
-        .toast-heading span {
-        padding-bottom: 2px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
-        /* Subtext right-aligned */
+        .toast-heading span {
+            padding-bottom: 2px;
+        }
+        
+        /* Subtext styling */
         .toast-subtext span {
             color: #5b6e74;
             font-size: 12px;
         }
+        
         .toast-subtext {
             display: flex;
-            width: 320px;
             justify-content: flex-start;
             align-items: flex-end;
+            flex-wrap: wrap;
         }
+        
         .toast-left {
             order: -1;
         }
+        
         .toast-right {
             display: flex;
             margin-left: auto;
-            padding-right: 20px;
         }
         
-        /* Close button on the right */
+        /* Close button */
         .toast-close {
-            position: relative;
-            top: -25px;
-            left: 20px;
-            margin-left: 8px;
+            position: absolute;
+            top: 8px;
+            right: 10px;
             cursor: pointer;
             background: none;
             border: none;
             font-size: 14px;
             color: #b4b4b4;
-            flex-shrink: 0;
-            align-self: flex-start;
+            padding: 4px;
         }
+        
         .toast-close:hover {
             color: #000;
         }
+        
+        /* Flip container */
+        .flip-container {
+            perspective: 1000px;
+            min-width: 64px;
+            width: 64px;
+            height: 64px;
+            flex-shrink: 0;
+        }
+        
+        .flip-img {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: flip 0.5s ease-in-out 1 forwards;
+            animation-delay: 1.5s;
+        }
+        
+        .flip-img-front, .flip-img-back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            border-radius: 50%;
+        }
+        
+        .flip-img-back {
+            background-color: #FF5733;
+            transform: rotateY(180deg);
+        }
+        
+        .flip-img-back img {
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        @keyframes flip {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(180deg); }
+        }
+        
+        /* Text styling */
         .purchase-text {
             text-decoration: none;
             box-shadow: inset 0 -1px 0 rgba(0,162,68,0.5), 0 1px 0 rgba(0,162,68,0.5);
@@ -147,11 +191,13 @@ function addStyles() {
             overflow: hidden;
             color: #00a244;
         }
+        
         .purchase-text:hover {
             box-shadow: inset 0 -30px 0 rgba(0,162,68), 0 2px 0 rgba(0,162,68);
             color: #f8f8f8;
             padding-top: 4px;
         }
+        
         .checkout-text {
             text-decoration: none;
             box-shadow: inset 0 -1px 0 rgba(9,175,236), 0 1px 0 rgba(9,175,236);
@@ -160,57 +206,65 @@ function addStyles() {
             overflow: hidden;
             color: #09afed;
         }
+        
         .checkout-text:hover {
             box-shadow: inset 0 -30px 0 rgba(9,175,236,0.5), 0 2px 0 rgba(9,175,236,0.5);
             color: #f8f8f8;
             padding-top: 4px;
         }
-        .flip-container {
-            perspective: 1000px; /* Adds perspective for 3D effect */
-            width: 64px;
-            height: 64px;
-        }
-        .flip-img {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            transform-style: preserve-3d; /* Ensures child elements are rendered in 3D space */
-            animation: flip 0.5s ease-in-out 1 forwards; /* Animation runs once and stays on the last frame */
-            animation-delay: 1.5s; /* Delay before the animation starts */
-        }
-
-        .flip-img-front, .flip-img-back {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            backface-visibility: hidden; /* Hides the back side of the card during flip */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-            border-radius: 50%;
-        }
-
-        .flip-img-front {
-            /* background-color: #09AFED; /* Front side color */
-        }
-
-        .flip-img-back {
-            background-color: #FF5733; /* Back side color */
-            transform: rotateY(180deg); /* Initially hides the back side */
-        }
-
-        .flip-img-back img {
-            border-radius: 50%;
-        }
-
-        @keyframes flip {
-            0% {
-                transform: rotateY(0deg); /* Starts with front side visible */
+        
+        /* Mobile responsiveness */
+        @media (max-width: 480px) {
+            #toast-container {
+                width: 95%;
+                top: 10px;
             }
-            100% {
-                transform: rotateY(180deg); /* Ends with back side visible */
+            
+            .toast {
+                padding: 10px 12px;
+                border-radius: 16px;
+            }
+            
+            .toast-content {
+                margin-left: 8px;
+            }
+            
+            .toast-heading {
+                font-size: 13px;
+            }
+            
+            .toast-subtext span {
+                font-size: 11px;
+            }
+            
+            .flip-container,
+            dotlottie-player {
+                width: 56px;
+                height: 56px;
+                min-width: 56px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .toast {
+                padding: 8px 10px;
+            }
+            
+            .toast-heading {
+                font-size: 12px;
+            }
+            
+            .flip-container,
+            dotlottie-player {
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+            }
+            
+            .toast-close {
+                top: 6px;
+                right: 8px;
+                font-size: 12px;
             }
         }
     `;
