@@ -14,7 +14,9 @@ const LETUP_CONFIG = {
     tableName: 'notifications',         // Default table name
     showDismissButton: false,            // Show close button on toasts (default: false)
     productImageUrl: null,              // Default to null to indicate no image is configured
-    productImageConfigured: false       // Flag to track if user explicitly configured an image
+    productImageConfigured: false,      // Flag to track if user explicitly configured an image
+    checkoutText: 'telah checkout',     // Default text for checkout notifications
+    purchaseText: 'telah membeli'       // Default text for purchase notifications
 };
 
 /**************************************************
@@ -97,6 +99,9 @@ function addStyles() {
             font-size: 14px;
             margin-bottom: 4px;
         }
+        .toast-heading span {
+        padding-bottom: 2px;
+        }
         
         /* Subtext right-aligned */
         .toast-subtext span {
@@ -135,55 +140,79 @@ function addStyles() {
         .toast-close:hover {
             color: #000;
         }
+        .purchase-text {
+            text-decoration: none;
+            box-shadow: inset 0 -1px 0 rgba(0,162,68,0.5), 0 1px 0 rgba(0,162,68,0.5);
+            transition: box-shadow .3s;
+            overflow: hidden;
+            color: #00a244;
+        }
+        .purchase-text:hover {
+            box-shadow: inset 0 -30px 0 rgba(0,162,68), 0 2px 0 rgba(0,162,68);
+            color: #f8f8f8;
+            padding-top: 4px;
+        }
+        .checkout-text {
+            text-decoration: none;
+            box-shadow: inset 0 -1px 0 rgba(9,175,236), 0 1px 0 rgba(9,175,236);
+            transition: box-shadow .3s;
+            color: inherit;
+            overflow: hidden;
+            color: #09afed;
+        }
+        .checkout-text:hover {
+            box-shadow: inset 0 -30px 0 rgba(9,175,236,0.5), 0 2px 0 rgba(9,175,236,0.5);
+            color: #f8f8f8;
+            padding-top: 4px;
+        }
         .flip-container {
-    perspective: 1000px; /* Adds perspective for 3D effect */
-    width: 64px;
-    height: 64px;
-}
+            perspective: 1000px; /* Adds perspective for 3D effect */
+            width: 64px;
+            height: 64px;
+        }
+        .flip-img {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d; /* Ensures child elements are rendered in 3D space */
+            animation: flip 0.5s ease-in-out 1 forwards; /* Animation runs once and stays on the last frame */
+            animation-delay: 1.5s; /* Delay before the animation starts */
+        }
 
-.flip-img {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transform-style: preserve-3d; /* Ensures child elements are rendered in 3D space */
-    animation: flip 0.5s ease-in-out 1 forwards; /* Animation runs once and stays on the last frame */
-    animation-delay: 1.5s; /* Delay before the animation starts */
-}
+        .flip-img-front, .flip-img-back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            backface-visibility: hidden; /* Hides the back side of the card during flip */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            border-radius: 50%;
+        }
 
-.flip-img-front, .flip-img-back {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    backface-visibility: hidden; /* Hides the back side of the card during flip */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: white;
-    border-radius: 50%;
-}
+        .flip-img-front {
+            /* background-color: #09AFED; /* Front side color */
+        }
 
-.flip-img-front {
-    /* background-color: #09AFED; /* Front side color */
-}
+        .flip-img-back {
+            background-color: #FF5733; /* Back side color */
+            transform: rotateY(180deg); /* Initially hides the back side */
+        }
 
-.flip-img-back {
-    background-color: #FF5733; /* Back side color */
-    transform: rotateY(180deg); /* Initially hides the back side */
-}
+        .flip-img-back img {
+            border-radius: 50%;
+        }
 
-.flip-img-back img {
-  border-radius: 50%;
-}
-
-@keyframes flip {
-    0% {
-        transform: rotateY(0deg); /* Starts with front side visible */
-    }
-    100% {
-        transform: rotateY(180deg); /* Ends with back side visible */
-    }
-}
+        @keyframes flip {
+            0% {
+                transform: rotateY(0deg); /* Starts with front side visible */
+            }
+            100% {
+                transform: rotateY(180deg); /* Ends with back side visible */
+            }
+        }
     `;
     document.head.appendChild(style);
 }
@@ -215,6 +244,15 @@ addStyles();
         if (currentScript.hasAttribute('data-dismiss')) {
             LETUP_CONFIG.showDismissButton =
                 currentScript.getAttribute('data-dismiss') === 'true';
+        }
+
+        // Parse string attributes for notification text
+        if (currentScript.hasAttribute('data-checkout-text')) {
+            LETUP_CONFIG.checkoutText = currentScript.getAttribute('data-checkout-text');
+        }
+
+        if (currentScript.hasAttribute('data-purchase-text')) {
+            LETUP_CONFIG.purchaseText = currentScript.getAttribute('data-purchase-text');
         }
 
         // Parse numeric attributes
@@ -282,6 +320,15 @@ addStyles();
     if (container.hasAttribute('data-dismiss')) {
         LETUP_CONFIG.showDismissButton =
             container.getAttribute('data-dismiss') === 'true';
+    }
+
+    // Parse string attributes for notification text
+    if (container.hasAttribute('data-checkout-text')) {
+        LETUP_CONFIG.checkoutText = container.getAttribute('data-checkout-text');
+    }
+
+    if (container.hasAttribute('data-purchase-text')) {
+        LETUP_CONFIG.purchaseText = container.getAttribute('data-purchase-text');
     }
 
     // Parse numeric attributes
@@ -612,16 +659,16 @@ function showToast(buyer, product, hhmm, timestamp) {
         // Create flip container structure
         const flipContainer = document.createElement("div");
         flipContainer.className = "flip-container";
-        
+
         const flipImg = document.createElement("div");
         flipImg.className = "flip-img";
-        
+
         const flipImgFront = document.createElement("div");
         flipImgFront.className = "flip-img-front";
-        
+
         const flipImgBack = document.createElement("div");
         flipImgBack.className = "flip-img-back";
-        
+
         // Lottie Player (for front)
         const lottieEl = document.createElement("dotlottie-player");
         lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
@@ -633,7 +680,7 @@ function showToast(buyer, product, hhmm, timestamp) {
         lottieEl.style.width = "64px";
         lottieEl.style.height = "64px";
         flipImgFront.appendChild(lottieEl);
-        
+
         // Back side - use configured image URL
         const imgEl = document.createElement("img");
         imgEl.src = LETUP_CONFIG.productImageUrl;
@@ -641,12 +688,12 @@ function showToast(buyer, product, hhmm, timestamp) {
         imgEl.height = 64;
         imgEl.alt = "Foto produk";
         flipImgBack.appendChild(imgEl);
-        
+
         // Assemble the flip container
         flipImg.appendChild(flipImgFront);
         flipImg.appendChild(flipImgBack);
         flipContainer.appendChild(flipImg);
-        
+
         // Add to toast
         toastEl.appendChild(flipContainer);
     } else {
@@ -669,10 +716,10 @@ function showToast(buyer, product, hhmm, timestamp) {
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
-    // Heading
+    // Heading - use configurable checkout text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${buyer} telah checkout <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${buyer} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
 
     // Subtext with inline image (hh:mm)
@@ -734,16 +781,16 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
         // Create flip container structure
         const flipContainer = document.createElement("div");
         flipContainer.className = "flip-container";
-        
+
         const flipImg = document.createElement("div");
         flipImg.className = "flip-img";
-        
+
         const flipImgFront = document.createElement("div");
         flipImgFront.className = "flip-img-front";
-        
+
         const flipImgBack = document.createElement("div");
         flipImgBack.className = "flip-img-back";
-        
+
         // Lottie Player (for front)
         const lottieEl = document.createElement("dotlottie-player");
         lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
@@ -755,7 +802,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
         lottieEl.style.width = "64px";
         lottieEl.style.height = "64px";
         flipImgFront.appendChild(lottieEl);
-        
+
         // Back side - use configured image URL
         const imgEl = document.createElement("img");
         imgEl.src = LETUP_CONFIG.productImageUrl;
@@ -763,12 +810,12 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
         imgEl.height = 64;
         imgEl.alt = "Foto produk";
         flipImgBack.appendChild(imgEl);
-        
+
         // Assemble the flip container
         flipImg.appendChild(flipImgFront);
         flipImg.appendChild(flipImgBack);
         flipContainer.appendChild(flipImg);
-        
+
         // Add to toast
         toastEl.appendChild(flipContainer);
     } else {
@@ -791,10 +838,10 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
-    // Heading with payment confirmation message
+    // Heading with payment confirmation message - use configurable purchase text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${buyer} telah membeli <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${buyer} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
 
     // Subtext with both relative time AND hh:mm format
