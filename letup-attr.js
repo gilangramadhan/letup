@@ -18,7 +18,8 @@ const LETUP_CONFIG = {
     checkoutText: 'telah checkout',     // Default text for checkout notifications
     purchaseText: 'telah membeli',       // Default text for purchase notifications
     position: 'top',                    // Position of toast notifications: 'top' or 'bottom'
-    censorBuyerNames: true              // Whether to censor buyer names in notifications (default: true)
+    censorBuyerNames: true,              // Whether to censor buyer names in notifications (default: true)
+    realtimeDelayMultiplier: 2          // How much longer realtime notifications stay visible compared to rotator ones
 };
 
 /**************************************************
@@ -463,6 +464,17 @@ addStyles();
             LETUP_CONFIG.tableName = currentScript.getAttribute('data-table-name');
         }
 
+        // In loadConfigFromDataAttributes function (delay multiplier)
+        if (currentScript.hasAttribute('data-realtime-multiplier')) {
+            const value = parseFloat(currentScript.getAttribute('data-realtime-multiplier'));
+            if (!isNaN(value) && value > 0) LETUP_CONFIG.realtimeDelayMultiplier = value;
+        }
+
+        if (container.hasAttribute('data-realtime-multiplier')) {
+            const value = parseFloat(container.getAttribute('data-realtime-multiplier'));
+            if (!isNaN(value) && value > 0) LETUP_CONFIG.realtimeDelayMultiplier = value;
+        }
+
         console.log("Notifications: Configured from data attributes", LETUP_CONFIG);
     }
 })();
@@ -698,8 +710,7 @@ function handleRealtimeNotification(notification) {
     const buyer = notification.buyer_name || "Seseorang";
     const product = notification.product_name || "produk ini";
     const createdAt = notification.created_at;
-    const lastUpdatedAt = notification.last_updated_at || notification.created_at; // Fallback to created_at if not available
-    // Extract product image URL from notification data
+    const lastUpdatedAt = notification.last_updated_at || notification.created_at;
     const productImageUrl = notification.product_image_url || LETUP_CONFIG.productImageUrl;
 
     // Update the displayed flag to prevent showing this notification again
@@ -710,13 +721,19 @@ function handleRealtimeNotification(notification) {
         notification.event_type === 'order.updated' &&
         notification.payment_status === 'paid';
 
+    // Flag that this is a realtime notification (for dismiss button logic)
+    const isRealtime = true;
+    
+    // Calculate the longer delay for realtime notifications
+    const realtimeDelay = LETUP_CONFIG.autoHideDelay * LETUP_CONFIG.realtimeDelayMultiplier;
+
     if (isPaymentConfirmation) {
-        // Payment confirmation notification - now passing the lastUpdatedAt and productImageUrl
-        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl);
+        // Payment confirmation notification
+        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, isRealtime, realtimeDelay);
     } else {
-        // Standard order notification - pass the createdAt timestamp for the day and productImageUrl
+        // Standard order notification
         const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
-        showToast(buyer, product, hhmm, createdAt, productImageUrl);
+        showToast(buyer, product, hhmm, createdAt, productImageUrl, isRealtime, realtimeDelay);
     }
 }
 
@@ -935,7 +952,7 @@ function getToastContainer() {
 /************************************************
  * 6. showToast() - Creates & displays a new toast
  ************************************************/
-function showToast(buyer, product, hhmm, timestamp, productImageUrl) {
+function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime = false, customDelay = null) {
     // Get container with proper position class
     const container = getToastContainer();
     
@@ -1016,11 +1033,12 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl) {
     // Apply name censoring based on configuration setting
     const displayName = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
 
-    // Heading with payment confirmation message - use configurable purchase text
+    // Heading with purchase message
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
     headingEl.innerHTML = `${displayName} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
+    
     // Subtext with inline image (hh:mm)
     if (hhmm) {
         // Get the Indonesian day name
@@ -1028,16 +1046,16 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl) {
         const subtextEl = document.createElement("div");
         subtextEl.className = "toast-subtext";
         subtextEl.innerHTML = `
-    <div class="toast-left"><span>Baru saja</span></div><div class="toast-right"><span>${dayName}, ${hhmm}</span> 
-    </div>
-  `;
+            <div class="toast-left"><span>Baru saja</span></div>
+            <div class="toast-right"><span>${dayName}, ${hhmm}</span></div>
+        `;
         contentEl.appendChild(subtextEl);
     }
 
     toastEl.appendChild(contentEl);
 
-    // Close button - only add if showDismissButton is true
-    if (LETUP_CONFIG.showDismissButton) {
+    // Close button - only add if it's a realtime notification
+    if (isRealtime && LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1055,15 +1073,16 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl) {
         toastEl.classList.add("show");
     });
 
-    // Auto-remove after configured delay
-    setTimeout(() => hideToast(toastEl), LETUP_CONFIG.autoHideDelay);
+    // Use custom delay if provided, otherwise use the configured auto-hide delay
+    const hideDelay = customDelay !== null ? customDelay : LETUP_CONFIG.autoHideDelay;
+    setTimeout(() => hideToast(toastEl), hideDelay);
 
     return toastEl;
 }
 /************************************************
  * 7. Modified showPaymentConfirmationToast() - now includes hh:mm time
  ************************************************/
-function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, productImageUrl) {
+function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, productImageUrl, isRealtime = false, customDelay = null) {
     // Get container with proper position class
     const container = getToastContainer();
     
@@ -1173,8 +1192,8 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
 
     toastEl.appendChild(contentEl);
 
-    // Close button - only add if showDismissButton is true
-    if (LETUP_CONFIG.showDismissButton) {
+    // Close button - only add if it's a realtime notification and showDismissButton is true
+    if (isRealtime && LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1192,8 +1211,9 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
         toastEl.classList.add("show");
     });
 
-    // Use the configured auto-hide delay instead of hardcoded 5000
-    setTimeout(() => hideToast(toastEl), LETUP_CONFIG.autoHideDelay);
+    // Use custom delay if provided, otherwise use the configured auto-hide delay
+    const hideDelay = customDelay !== null ? customDelay : LETUP_CONFIG.autoHideDelay;
+    setTimeout(() => hideToast(toastEl), hideDelay);
 
     // IMPORTANT: Return the element instead of auto-removing it
     return toastEl;
@@ -1242,7 +1262,9 @@ function showNextRotatorNotification() {
         productName, 
         createdAt, 
         lastUpdatedAt,
-        productImageUrl
+        productImageUrl,
+        false, // Not a realtime notification
+        null   // Use default delay
     );
 
     // First timeout: Hide the toast after displaying it for configured delay
