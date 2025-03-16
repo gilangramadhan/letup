@@ -941,13 +941,13 @@ function showToast(buyer, product, hhmm, timestamp) {
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
-    // Censor the buyer name for privacy
-    const censoredBuyer = censorName(buyer);
+    // Conditionally censor the buyer name based on configuration
+    const displayName = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
 
     // Heading - use configurable checkout text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${censoredBuyer} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${displayName} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
 
     // Subtext with inline image (hh:mm)
     if (hhmm) {
@@ -1067,15 +1067,14 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
-    // Censor the buyer name for privacy
-    const censoredBuyer = censorName(buyer);
+    // Conditionally censor the buyer name based on configuration
+    const displayName = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
 
     // Heading with payment confirmation message - use configurable purchase text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${censoredBuyer} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
-    contentEl.appendChild(headingEl);
-
+    headingEl.innerHTML = `${displayName} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
+    
     // Subtext with both relative time AND hh:mm format
     // Get the Indonesian day name
     const dayName = lastUpdatedAt ? formatIndonesianDay(lastUpdatedAt) : "";
