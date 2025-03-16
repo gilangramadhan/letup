@@ -349,6 +349,37 @@ addStyles();
 
     // Check for script data attributes
     if (currentScript) {
+        // NEW: Look for consolidated JSON configuration
+        if (currentScript.hasAttribute('data-setup') || currentScript.hasAttribute('data-rilpop')) {
+            const jsonAttr = currentScript.getAttribute('data-setup') || currentScript.getAttribute('data-rilpop');
+            try {
+                // Parse the JSON configuration
+                const jsonConfig = JSON.parse(jsonAttr);
+                
+                // Apply all properties from the JSON config to LETUP_CONFIG
+                for (const [key, value] of Object.entries(jsonConfig)) {
+                    // Convert kebab-case to camelCase if needed
+                    const configKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                    
+                    // Special handling for boolean values that might be strings
+                    if (typeof value === 'string' && (value === 'true' || value === 'false')) {
+                        LETUP_CONFIG[configKey] = value === 'true';
+                    } 
+                    // Special handling for numeric values that might be strings
+                    else if (typeof value === 'string' && !isNaN(value) && !isNaN(parseFloat(value))) {
+                        LETUP_CONFIG[configKey] = parseFloat(value);
+                    }
+                    // Handle normal values
+                    else {
+                        LETUP_CONFIG[configKey] = value;
+                    }
+                }
+                
+                console.log("Notifications: Configured from JSON attribute", LETUP_CONFIG);
+            } catch (error) {
+                console.error("Error parsing JSON configuration:", error);
+            }
+        }
         // Parse boolean attributes
         if (currentScript.hasAttribute('data-enable-realtime')) {
             LETUP_CONFIG.enableRealtimeNotifications =
@@ -1154,11 +1185,11 @@ function showNextRotatorNotification() {
     const localFetchTime = item.local_fetch_time; // Use the local fetch time
 
     // Log for debugging
-    // console.log("Showing notification with dates:", {
-    //    createdAt,
-    //    lastUpdatedAt,
-    //    localFetchTime
-    //});
+    console.log("Showing notification with dates:", {
+        createdAt,
+        lastUpdatedAt,
+        localFetchTime
+    });
 
     // Display the notification and get reference to the element
     const toastEl = showPaymentConfirmationToast(
