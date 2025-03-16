@@ -17,7 +17,8 @@ const LETUP_CONFIG = {
     productImageConfigured: false,      // Flag to track if user explicitly configured an image
     checkoutText: 'telah checkout',     // Default text for checkout notifications
     purchaseText: 'telah membeli',       // Default text for purchase notifications
-    position: 'top'                     // Position of toast notifications: 'top' or 'bottom'
+    position: 'top',                    // Position of toast notifications: 'top' or 'bottom'
+    censorBuyerNames: true              // Whether to censor buyer names in notifications (default: true)
 };
 
 /**************************************************
@@ -60,7 +61,7 @@ function addStyles() {
             background-color: #fff;
             border-radius: 24px;
             margin-bottom: 12px;
-            padding: 12px 14px;
+            padding: 6px 12px;
             box-shadow: 0 0 0 1px #0e3f7e0f, 0 1px 1px -0.5px #2a334608,
                 0 2px 2px -1px #2a33460a, 0 3px 3px -1.5px #2a33460a,
                 0 5px 5px -2.5px #2a334608, 0 10px 10px -5px #2a334608,
@@ -363,6 +364,11 @@ addStyles();
             LETUP_CONFIG.showDismissButton =
                 currentScript.getAttribute('data-dismiss') === 'true';
         }
+        // Parse boolean attributes for name censoring
+        if (currentScript.hasAttribute('data-censor-names')) {
+            LETUP_CONFIG.censorBuyerNames = 
+                currentScript.getAttribute('data-censor-names') === 'true';
+        }
 
         // Parse position attribute
         if (currentScript.hasAttribute('data-position')) {
@@ -446,6 +452,11 @@ addStyles();
     if (container.hasAttribute('data-dismiss')) {
         LETUP_CONFIG.showDismissButton =
             container.getAttribute('data-dismiss') === 'true';
+    }
+    
+    if (container.hasAttribute('data-censor-names')) {
+        LETUP_CONFIG.censorBuyerNames =
+            container.getAttribute('data-censor-names') === 'true';
     }
 
     // Parse position attribute
@@ -810,20 +821,26 @@ function formatIndonesianDay(dateString) {
 function censorName(name) {
     if (!name) return "Seseorang";
     
-    // Handle very short names
-    if (name.length <= 3) {
-        return name[0] + "**";
-    }
+    // Split the name into words
+    const words = name.split(' ');
     
-    // For longer names, keep first 2 chars and last char, replace middle with asterisks
-    const firstPart = name.substring(0, 2);
-    const lastPart = name.substring(name.length - 1);
-    const middleLength = name.length - 3;
+    // Process each word individually
+    const censoredWords = words.map(word => {
+        // Handle short words (keep first letter only)
+        if (word.length <= 2) {
+            return word[0] + '*';
+        }
+        
+        // For longer words, keep first 2 chars and censor the rest
+        const firstPart = word.substring(0, 2);
+        const remainingLength = word.length - 2;
+        const asterisks = '*'.repeat(remainingLength);
+        
+        return firstPart + asterisks;
+    });
     
-    // Create asterisks based on name length (at least 2)
-    const asterisks = '*'.repeat(Math.max(2, middleLength));
-    
-    return firstPart + asterisks + lastPart;
+    // Join the censored words back together
+    return censoredWords.join(' ');
 }
 
 /**************************************************
