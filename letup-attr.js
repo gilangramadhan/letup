@@ -1063,7 +1063,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl) {
 /************************************************
  * 7. Modified showPaymentConfirmationToast() - now includes hh:mm time
  ************************************************/
-function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) {
+function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, productImageUrl) {
     // Get container with proper position class
     const container = getToastContainer();
     
@@ -1077,8 +1077,10 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     const toastEl = document.createElement("div");
     toastEl.className = "toast payment-toast"; // Add a distinguishing class
 
-    // Conditionally create either flip container or direct Lottie player
-    if (LETUP_CONFIG.productImageConfigured) {
+    // Create flip container if product image URL is available or if configured globally
+    const hasProductImage = productImageUrl || LETUP_CONFIG.productImageConfigured;
+    
+    if (hasProductImage) {
         // Create flip container structure
         const flipContainer = document.createElement("div");
         flipContainer.className = "flip-container";
@@ -1104,11 +1106,11 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
         lottieEl.style.height = "64px";
         flipImgFront.appendChild(lottieEl);
 
-        // Back side - use configured image URL
+        // Back side - use product-specific image URL if available, fall back to global config
         const imgEl = document.createElement("img");
-        imgEl.src = LETUP_CONFIG.productImageUrl;
-        imgEl.width = 54;
-        imgEl.height = 54;
+        imgEl.src = productImageUrl || LETUP_CONFIG.productImageUrl;
+        imgEl.width = 64;
+        imgEl.height = 64;
         imgEl.alt = "Foto produk";
         flipImgBack.appendChild(imgEl);
 
@@ -1224,12 +1226,14 @@ function showNextRotatorNotification() {
     const createdAt = item.created_at;
     const lastUpdatedAt = item.last_updated_at || item.created_at;
     const localFetchTime = item.local_fetch_time; // Use the local fetch time
+    const productImageUrl = item.product_image_url || LETUP_CONFIG.productImageUrl;
 
     // Log for debugging
     console.log("Showing notification with dates:", {
         createdAt,
         lastUpdatedAt,
-        localFetchTime
+        localFetchTime,
+        productImageUrl
     });
 
     // Display the notification and get reference to the element
@@ -1238,7 +1242,7 @@ function showNextRotatorNotification() {
         productName, 
         createdAt, 
         lastUpdatedAt,
-        localFetchTime
+        productImageUrl
     );
 
     // First timeout: Hide the toast after displaying it for configured delay
