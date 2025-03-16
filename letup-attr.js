@@ -224,14 +224,13 @@ function addStyles() {
         }
         
         .flip-img-back {
-            background-color: #FF5733;
             transform: rotateY(180deg);
         }
         
         .flip-img-back img {
-            border-radius: 50%;
-            width: 100%;
-            height: 100%;
+            border-radius: 30%;
+            width: 54px;
+            height: 54px;
             object-fit: cover;
         }
         
@@ -982,8 +981,8 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl) {
         // Back side - use product-specific image URL if available, fall back to global config
         const imgEl = document.createElement("img");
         imgEl.src = productImageUrl || LETUP_CONFIG.productImageUrl;
-        imgEl.width = 64;
-        imgEl.height = 64;
+        imgEl.width = 54;
+        imgEl.height = 54;
         imgEl.alt = "Foto produk";
         flipImgBack.appendChild(imgEl);
 
@@ -1108,8 +1107,8 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
         // Back side - use configured image URL
         const imgEl = document.createElement("img");
         imgEl.src = LETUP_CONFIG.productImageUrl;
-        imgEl.width = 64;
-        imgEl.height = 64;
+        imgEl.width = 54;
+        imgEl.height = 54;
         imgEl.alt = "Foto produk";
         flipImgBack.appendChild(imgEl);
 
