@@ -349,9 +349,9 @@ addStyles();
 
     // Check for script data attributes
     if (currentScript) {
-        // NEW: Look for consolidated JSON configuration
-        if (currentScript.hasAttribute('data-setup') || currentScript.hasAttribute('data-rilpop')) {
-            const jsonAttr = currentScript.getAttribute('data-setup') || currentScript.getAttribute('data-rilpop');
+        // NEW: Look for consolidated JSON configuration with data-rilpop
+        if (currentScript.hasAttribute('data-rilpop')) {
+            const jsonAttr = currentScript.getAttribute('data-rilpop');
             try {
                 // Parse the JSON configuration
                 const jsonConfig = JSON.parse(jsonAttr);
@@ -360,6 +360,11 @@ addStyles();
                 for (const [key, value] of Object.entries(jsonConfig)) {
                     // Convert kebab-case to camelCase if needed
                     const configKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                    
+                    // For productImageUrl, set the configured flag too
+                    if (configKey === 'productImageUrl' && value) {
+                        LETUP_CONFIG.productImageConfigured = true;
+                    }
                     
                     // Special handling for boolean values that might be strings
                     if (typeof value === 'string' && (value === 'true' || value === 'false')) {
@@ -375,11 +380,12 @@ addStyles();
                     }
                 }
                 
-                console.log("Notifications: Configured from JSON attribute", LETUP_CONFIG);
+                console.log("Notifications: Configured from data-rilpop JSON attribute", LETUP_CONFIG);
             } catch (error) {
-                console.error("Error parsing JSON configuration:", error);
+                console.error("Error parsing data-rilpop JSON configuration:", error);
             }
         }
+
         // Parse boolean attributes
         if (currentScript.hasAttribute('data-enable-realtime')) {
             LETUP_CONFIG.enableRealtimeNotifications =
@@ -468,6 +474,38 @@ addStyles();
 (function loadConfigFromContainer() {
     const container = document.getElementById('toast-container');
     if (!container) return; // Container not found
+
+    // NEW: Look for consolidated JSON configuration
+    if (container.hasAttribute('data-setup') || container.hasAttribute('data-rilpop')) {
+        const jsonAttr = container.getAttribute('data-setup') || container.getAttribute('data-rilpop');
+        try {
+            // Parse the JSON configuration
+            const jsonConfig = JSON.parse(jsonAttr);
+            
+            // Apply all properties from the JSON config to LETUP_CONFIG
+            for (const [key, value] of Object.entries(jsonConfig)) {
+                // Convert kebab-case to camelCase if needed
+                const configKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                
+                // Special handling for boolean values that might be strings
+                if (typeof value === 'string' && (value === 'true' || value === 'false')) {
+                    LETUP_CONFIG[configKey] = value === 'true';
+                } 
+                // Special handling for numeric values that might be strings
+                else if (typeof value === 'string' && !isNaN(value) && !isNaN(parseFloat(value))) {
+                    LETUP_CONFIG[configKey] = parseFloat(value);
+                }
+                // Handle normal values
+                else {
+                    LETUP_CONFIG[configKey] = value;
+                }
+            }
+            
+            console.log("Notifications: Configured from container JSON attribute", LETUP_CONFIG);
+        } catch (error) {
+            console.error("Error parsing JSON configuration:", error);
+        }
+    }
 
     // Parse boolean attributes
     if (container.hasAttribute('data-enable-realtime')) {
@@ -662,6 +700,8 @@ function handleRealtimeNotification(notification) {
     const product = notification.product_name || "produk ini";
     const createdAt = notification.created_at;
     const lastUpdatedAt = notification.last_updated_at || notification.created_at; // Fallback to created_at if not available
+    // Extract product image URL from notification data
+    const productImageUrl = notification.product_image_url || LETUP_CONFIG.productImageUrl;
 
     // Update the displayed flag to prevent showing this notification again
     updateNotificationDisplayed(notification.id);
@@ -672,12 +712,12 @@ function handleRealtimeNotification(notification) {
         notification.payment_status === 'paid';
 
     if (isPaymentConfirmation) {
-        // Payment confirmation notification - now passing the lastUpdatedAt
-        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt);
+        // Payment confirmation notification - now passing the lastUpdatedAt and productImageUrl
+        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl);
     } else {
-        // Standard order notification - pass the createdAt timestamp for the day
+        // Standard order notification - pass the createdAt timestamp for the day and productImageUrl
         const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
-        showToast(buyer, product, hhmm, createdAt);
+        showToast(buyer, product, hhmm, createdAt, productImageUrl);
     }
 }
 
@@ -896,7 +936,7 @@ function getToastContainer() {
 /************************************************
  * 6. showToast() - Creates & displays a new toast
  ************************************************/
-function showToast(buyer, product, hhmm, timestamp) {
+function showToast(buyer, product, hhmm, timestamp, productImageUrl) {
     // Get container with proper position class
     const container = getToastContainer();
     
@@ -910,8 +950,10 @@ function showToast(buyer, product, hhmm, timestamp) {
     const toastEl = document.createElement("div");
     toastEl.className = "toast";
 
-    // Conditionally create either flip container or direct Lottie player
-    if (LETUP_CONFIG.productImageConfigured) {
+    // Create flip container if product image URL is available or if configured globally
+    const hasProductImage = productImageUrl || LETUP_CONFIG.productImageConfigured;
+    
+    if (hasProductImage) {
         // Create flip container structure
         const flipContainer = document.createElement("div");
         flipContainer.className = "flip-container";
@@ -937,9 +979,9 @@ function showToast(buyer, product, hhmm, timestamp) {
         lottieEl.style.height = "64px";
         flipImgFront.appendChild(lottieEl);
 
-        // Back side - use configured image URL
+        // Back side - use product-specific image URL if available, fall back to global config
         const imgEl = document.createElement("img");
-        imgEl.src = LETUP_CONFIG.productImageUrl;
+        imgEl.src = productImageUrl || LETUP_CONFIG.productImageUrl;
         imgEl.width = 64;
         imgEl.height = 64;
         imgEl.alt = "Foto produk";
