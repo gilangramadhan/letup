@@ -464,14 +464,9 @@ addStyles();
             LETUP_CONFIG.tableName = currentScript.getAttribute('data-table-name');
         }
 
-        // In loadConfigFromDataAttributes function (delay multiplier)
+        // Parse realtime multiplier
         if (currentScript.hasAttribute('data-realtime-multiplier')) {
             const value = parseFloat(currentScript.getAttribute('data-realtime-multiplier'));
-            if (!isNaN(value) && value > 0) LETUP_CONFIG.realtimeDelayMultiplier = value;
-        }
-
-        if (container.hasAttribute('data-realtime-multiplier')) {
-            const value = parseFloat(container.getAttribute('data-realtime-multiplier'));
             if (!isNaN(value) && value > 0) LETUP_CONFIG.realtimeDelayMultiplier = value;
         }
 
@@ -1168,7 +1163,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
     headingEl.className = "toast-heading";
     headingEl.innerHTML = `${displayName} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
     
-    // CRUCIAL FIX: Add the heading to the content element
+    // Add the heading to the content element
     contentEl.appendChild(headingEl);
     
     // Subtext with both relative time AND hh:mm format
@@ -1185,14 +1180,13 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
 
     subtextEl.innerHTML = `
       <div class="toast-left"><span>${relativeTime}</span></div>
-      <div class="toast-right"><span>${dayName}, ${hhmm}</span> 
-      </div>
+      <div class="toast-right"><span>${dayName}, ${hhmm}</span></div>
     `;
     contentEl.appendChild(subtextEl);
 
     toastEl.appendChild(contentEl);
 
-    // Close button - only add if it's a realtime notification and showDismissButton is true
+    // Close button - only add if it's a realtime notification
     if (isRealtime && LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
@@ -1215,7 +1209,6 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
     const hideDelay = customDelay !== null ? customDelay : LETUP_CONFIG.autoHideDelay;
     setTimeout(() => hideToast(toastEl), hideDelay);
 
-    // IMPORTANT: Return the element instead of auto-removing it
     return toastEl;
 }
 
@@ -1245,18 +1238,17 @@ function showNextRotatorNotification() {
     const productName = item.product_name || 'produk ini';
     const createdAt = item.created_at;
     const lastUpdatedAt = item.last_updated_at || item.created_at;
-    const localFetchTime = item.local_fetch_time; // Use the local fetch time
     const productImageUrl = item.product_image_url || LETUP_CONFIG.productImageUrl;
 
     // Log for debugging
     console.log("Showing notification with dates:", {
         createdAt,
         lastUpdatedAt,
-        localFetchTime,
         productImageUrl
     });
 
     // Display the notification and get reference to the element
+    // Pass false for isRealtime to indicate this is a rotator notification
     const toastEl = showPaymentConfirmationToast(
         buyer, 
         productName, 
