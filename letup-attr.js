@@ -941,14 +941,14 @@ function showToast(buyer, product, hhmm, timestamp) {
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
-    // Conditionally censor the buyer name based on configuration
+    // Apply name censoring based on configuration setting
     const displayName = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
 
-    // Heading - use configurable checkout text
+    // Heading with payment confirmation message - use configurable purchase text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${displayName} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
-
+    headingEl.innerHTML = `${displayName} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
+    contentEl.appendChild(headingEl);
     // Subtext with inline image (hh:mm)
     if (hhmm) {
         // Get the Indonesian day name
@@ -1075,6 +1075,9 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt) 
     headingEl.className = "toast-heading";
     headingEl.innerHTML = `${displayName} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
     
+    // CRUCIAL FIX: Add the heading to the content element
+    contentEl.appendChild(headingEl);
+    
     // Subtext with both relative time AND hh:mm format
     // Get the Indonesian day name
     const dayName = lastUpdatedAt ? formatIndonesianDay(lastUpdatedAt) : "";
@@ -1151,11 +1154,11 @@ function showNextRotatorNotification() {
     const localFetchTime = item.local_fetch_time; // Use the local fetch time
 
     // Log for debugging
-    console.log("Showing notification with dates:", {
-        createdAt,
-        lastUpdatedAt,
-        localFetchTime
-    });
+    // console.log("Showing notification with dates:", {
+    //    createdAt,
+    //    lastUpdatedAt,
+    //    localFetchTime
+    //});
 
     // Display the notification and get reference to the element
     const toastEl = showPaymentConfirmationToast(
