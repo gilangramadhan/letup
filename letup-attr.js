@@ -713,7 +713,7 @@ function handleRealtimeNotification(notification) {
 
     // Determine notification type based on event_type and payment_status
     const isPaymentConfirmation =
-        notification.event_type === 'order.updated' &&
+        notification.event_type === 'order.payment_status_changed' &&
         notification.payment_status === 'paid';
 
     // Flag that this is a realtime notification (for dismiss button logic)
@@ -773,7 +773,7 @@ async function fetchRotatorData() {
         const { data, error } = await supabase
             .from(LETUP_CONFIG.tableName) // Use the configurable table name
             .select('*')
-            .eq('event_type', 'order.updated')
+            .eq('event_type', 'order.payment_status_changed')
             .eq('payment_status', 'paid')
             .gte('created_at', sevenDaysAgo.toISOString())
             .limit(LETUP_CONFIG.rotatorDataLimit); // Use the configurable limit
