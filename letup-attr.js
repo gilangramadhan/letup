@@ -9,10 +9,10 @@ const LETUP_CONFIG = {
     autoHideDelay: 5000,                // Time before auto-hiding toasts (milliseconds)
     rotatorDataLimit: 10,               // Maximum number of notifications to fetch for rotator (default: 10)
     scrollTriggerPoint: 200,            // Scroll distance to trigger loading (pixels - fixed)
-    supabaseUrl: 'https://tsaaphhxqbsknszartza.supabase.co', // Default Supabase URL
-    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYWFwaGh4cWJza25zemFydHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjEyNzAsImV4cCI6MjA1Njk5NzI3MH0.yQZgidrNuzheZ8oKgpWkl4n0Ha9WoJNbnIuu8IuhLaU', // Default Supabase anon key
+    supabaseUrl: null,                  // Default Supabase URL
+    supabaseKey: null,                  // Default Supabase anon key
     tableName: 'notifications',         // Default table name
-    showDismissButton: false,            // Show close button on toasts (default: false)
+    showDismissButton: true,            // Show close button on toasts (default: true)
     productImageUrl: null,              // Default to null to indicate no image is configured
     productImageConfigured: false,      // Flag to track if user explicitly configured an image
     checkoutText: 'telah checkout',     // Default text for checkout notifications
@@ -679,31 +679,22 @@ function initSupabase() {
 function initRealtimeNotifications() {
     console.log(`Initializing realtime notifications with table: ${LETUP_CONFIG.tableName}`);
 
-    try {
-        // Subscribe to realtime notifications
-        realtimeSubscription = supabase
-            .channel('notifications-channel')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: LETUP_CONFIG.tableName,
-                    filter: 'displayed=eq.false'
-                },
-                (payload) => {
-                    console.log("Received realtime notification:", payload.new);
-                    handleRealtimeNotification(payload.new);
-                }
-            )
-            .subscribe((status) => {
-                console.log(`Realtime subscription status: ${status}`);
-            });
-            
-        console.log("Realtime subscription created successfully");
-    } catch (error) {
-        console.error("Error setting up realtime notifications:", error);
-    }
+    // Subscribe to realtime notifications
+    realtimeSubscription = supabase
+        .channel('notifications-channel')
+        .on(
+            'postgres_changes',
+            {
+                event: 'INSERT',
+                schema: 'public',
+                table: LETUP_CONFIG.tableName, // Use configurable table name
+                filter: 'displayed=eq.false'
+            },
+            (payload) => {
+                handleRealtimeNotification(payload.new);
+            }
+        )
+        .subscribe();
 }
 
 function handleRealtimeNotification(notification) {
@@ -715,34 +706,26 @@ function handleRealtimeNotification(notification) {
 
     // Update the displayed flag to prevent showing this notification again
     updateNotificationDisplayed(notification.id);
-    
-    // Add debugging to see what's coming in
-    console.log("Processing notification:", {
-        event_type: notification.event_type,
-        payment_status: notification.payment_status
-    });
 
-    // FIX: More flexible condition for payment confirmations - check event type OR payment status
-    const isPaymentConfirmation = 
-        notification.event_type === 'order.updated' || 
-        notification.event_type === 'order.payment_status_changed' ||
+    // Determine notification type based on event_type and payment_status
+    const isPaymentConfirmation =
+        notification.event_type === 'order.payment_status_changed' &&
         notification.payment_status === 'paid';
+
+    // Flag that this is a realtime notification (for dismiss button logic)
+    const isRealtime = true;
     
     // Calculate the longer delay for realtime notifications
     const realtimeDelay = LETUP_CONFIG.autoHideDelay * LETUP_CONFIG.realtimeDelayMultiplier;
 
-    let toastEl;
     if (isPaymentConfirmation) {
-        console.log("Showing payment confirmation toast");
-        toastEl = showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, false, realtimeDelay);
+        // Payment confirmation notification
+        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, isRealtime, realtimeDelay);
     } else {
-        console.log("Showing standard toast");
+        // Standard order notification
         const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
-        toastEl = showToast(buyer, product, hhmm, createdAt, productImageUrl, false, realtimeDelay);
+        showToast(buyer, product, hhmm, createdAt, productImageUrl, isRealtime, realtimeDelay);
     }
-    
-    // ALWAYS add the dismiss button directly to realtime notifications
-    addDismissButton(toastEl);
 }
 
 // Add this missing function
@@ -876,7 +859,7 @@ function formatRelativeTime(dateString) {
             diffInDays: Math.floor(diffInSeconds / 86400)
         });
         
-        if (diffInSeconds < 60) {
+        if (diffInSeconds < 360) {
             return "Baru saja";
         } else if (diffInSeconds < 3600) {
             const minutes = Math.floor(diffInSeconds / 60);
@@ -1063,7 +1046,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     toastEl.appendChild(contentEl);
 
     // Close button - only add if it's a realtime notification
-    if (LETUP_CONFIG.showDismissButton) {
+    if (isRealtime && LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1199,8 +1182,8 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
 
     toastEl.appendChild(contentEl);
 
-    // Close button - always show for realtime notifications regardless of config setting
-    if (LETUP_CONFIG.showDismissButton) {
+    // Close button - only add if it's a realtime notification
+    if (isRealtime && LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1210,31 +1193,21 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
         toastEl.appendChild(closeBtn);
     }
 
+    // Append to container
+    container.appendChild(toastEl);
+
+    // Animate slide-down
+    requestAnimationFrame(() => {
+        toastEl.classList.add("show");
+    });
+
     // Use custom delay if provided, otherwise use the configured auto-hide delay
     const hideDelay = customDelay !== null ? customDelay : LETUP_CONFIG.autoHideDelay;
     setTimeout(() => hideToast(toastEl), hideDelay);
 
     return toastEl;
 }
-/**
- * Helper function to add a dismiss button to any toast
- * This ensures realtime notifications always have a dismiss button
- */
-function addDismissButton(toastEl) {
-    // Check if a dismiss button already exists
-    if (toastEl.querySelector('.toast-close')) {
-        return toastEl; // Don't add duplicate buttons
-    }
 
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "toast-close";
-    closeBtn.innerText = "x";
-    closeBtn.addEventListener("click", () => {
-        hideToast(toastEl);
-    });
-    toastEl.appendChild(closeBtn);
-    return toastEl;
-}
 /************************************************
  * Modified: Show Next Rotator Notification with Delay
  ************************************************/
