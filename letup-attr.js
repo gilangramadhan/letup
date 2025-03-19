@@ -139,15 +139,14 @@ function addStyles() {
             flex: 1;
             line-height: 1.4;
             margin-left: 10px;
+            padding-right: 14px;
             overflow: hidden;
         }
         
         /* Heading text */
         .toast-heading {
             font-size: 13px;
-            padding-right:14;
             margin-bottom: 4px;
-            word-wrap: break-word;
             overflow-wrap: break-word;
         }
         
