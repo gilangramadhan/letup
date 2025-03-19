@@ -1192,7 +1192,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
     toastEl.appendChild(contentEl);
 
     // Close button - only add if it's a realtime notification
-    if (isRealtime && LETUP_CONFIG.showDismissButton) {
+    if (isRealtime || LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1283,22 +1283,3 @@ window.addEventListener('beforeunload', () => {
         clearTimeout(rotatorTimeout);
     }
 });
-
-// Add immediate debug test toast to verify display is working
-window.addEventListener('DOMContentLoaded', () => {
-    // Add a small delay to ensure everything is loaded
-    setTimeout(() => {
-        console.log("Testing toast display functionality...");
-        showToast(
-            "Test User", 
-            "Test Product", 
-            "12:34", 
-            new Date().toISOString(), 
-            null, 
-            true, 
-            10000
-        );
-    }, 2000);
-});
-
-console.log("Letup notification script loaded successfully");
