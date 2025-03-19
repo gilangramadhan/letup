@@ -1191,8 +1191,17 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
 
     toastEl.appendChild(contentEl);
 
-    // Close button - only add if it's a realtime notification
-    if (isRealtime || LETUP_CONFIG.showDismissButton) {
+    // Close button - always show for realtime notifications regardless of config setting
+    if (isRealtime) {
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "toast-close";
+        closeBtn.innerText = "x";
+        closeBtn.addEventListener("click", () => {
+            hideToast(toastEl);
+        });
+        toastEl.appendChild(closeBtn);
+    } else if (LETUP_CONFIG.showDismissButton) {
+        // Only check config for non-realtime notifications
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1201,14 +1210,6 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
         });
         toastEl.appendChild(closeBtn);
     }
-
-    // Append to container
-    container.appendChild(toastEl);
-
-    // Animate slide-down
-    requestAnimationFrame(() => {
-        toastEl.classList.add("show");
-    });
 
     // Use custom delay if provided, otherwise use the configured auto-hide delay
     const hideDelay = customDelay !== null ? customDelay : LETUP_CONFIG.autoHideDelay;
