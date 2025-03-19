@@ -1027,7 +1027,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     // Heading with purchase message
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${displayName} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${displayName} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
     
     // Subtext with inline image (hh:mm)
