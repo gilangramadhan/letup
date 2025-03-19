@@ -715,10 +715,17 @@ function handleRealtimeNotification(notification) {
 
     // Update the displayed flag to prevent showing this notification again
     updateNotificationDisplayed(notification.id);
+    
+    // Add debugging to see what's coming in
+    console.log("Processing notification:", {
+        event_type: notification.event_type,
+        payment_status: notification.payment_status
+    });
 
-    // Determine notification type based on event_type and payment_status
-    const isPaymentConfirmation =
-        notification.event_type === 'order.payment_status_changed' &&
+    // FIX: More flexible condition for payment confirmations - check event type OR payment status
+    const isPaymentConfirmation = 
+        notification.event_type === 'order.updated' || 
+        notification.event_type === 'order.payment_status_changed' ||
         notification.payment_status === 'paid';
     
     // Calculate the longer delay for realtime notifications
@@ -726,11 +733,11 @@ function handleRealtimeNotification(notification) {
 
     let toastEl;
     if (isPaymentConfirmation) {
-        // Pass isRealtime=false to prevent the internal logic from handling dismiss buttons
+        console.log("Showing payment confirmation toast");
         toastEl = showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, false, realtimeDelay);
     } else {
+        console.log("Showing standard toast");
         const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
-        // Pass isRealtime=false to prevent the internal logic from handling dismiss buttons
         toastEl = showToast(buyer, product, hhmm, createdAt, productImageUrl, false, realtimeDelay);
     }
     
