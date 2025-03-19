@@ -34,7 +34,7 @@ function addStyles() {
         /* Toast container - base styles */
         #toast-container {
             width: 90%;
-            max-width: 432px;
+            max-width: 300px;
             position: fixed;
             z-index: 9999;
         }
@@ -62,7 +62,7 @@ function addStyles() {
             background-color: #fff;
             border-radius: 24px;
             margin-bottom: 12px;
-            padding: 6px 12px;
+            padding: 8px 12px;
             box-shadow: 0 0 0 1px #0e3f7e0f, 0 1px 1px -0.5px #2a334608,
                 0 2px 2px -1px #2a33460a, 0 3px 3px -1.5px #2a33460a,
                 0 5px 5px -2.5px #2a334608, 0 10px 10px -5px #2a334608,
@@ -144,7 +144,8 @@ function addStyles() {
         
         /* Heading text */
         .toast-heading {
-            font-size: 14px;
+            font-size: 13px;
+            padding-right:14;
             margin-bottom: 4px;
             word-wrap: break-word;
             overflow-wrap: break-word;
@@ -313,10 +314,6 @@ function addStyles() {
         @media (max-width: 360px) {
             .toast {
                 padding: 8px 10px;
-            }
-            
-            .toast-heading {
-                font-size: 12px;
             }
             
             .flip-container,
@@ -1016,7 +1013,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
         lottieEl.setAttribute("autoplay", "");
         lottieEl.style.width = "64px";
         lottieEl.style.height = "64px";
-        lottieEl.style.marginRight = "4px";
+        // lottieEl.style.marginRight = "4px";
         lottieEl.style.flexShrink = "0";
         toastEl.appendChild(lottieEl);
     }
@@ -1146,7 +1143,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
         lottieEl.setAttribute("autoplay", "");
         lottieEl.style.width = "64px";
         lottieEl.style.height = "64px";
-        lottieEl.style.marginRight = "4px";
+        // lottieEl.style.marginRight = "4px";
         lottieEl.style.flexShrink = "0";
         toastEl.appendChild(lottieEl);
     }
