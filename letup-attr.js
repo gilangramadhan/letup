@@ -679,22 +679,31 @@ function initSupabase() {
 function initRealtimeNotifications() {
     console.log(`Initializing realtime notifications with table: ${LETUP_CONFIG.tableName}`);
 
-    // Subscribe to realtime notifications
-    realtimeSubscription = supabase
-        .channel('notifications-channel')
-        .on(
-            'postgres_changes',
-            {
-                event: 'INSERT',
-                schema: 'public',
-                table: LETUP_CONFIG.tableName, // Use configurable table name
-                filter: 'displayed=eq.false'
-            },
-            (payload) => {
-                handleRealtimeNotification(payload.new);
-            }
-        )
-        .subscribe();
+    try {
+        // Subscribe to realtime notifications
+        realtimeSubscription = supabase
+            .channel('notifications-channel')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: LETUP_CONFIG.tableName,
+                    filter: 'displayed=eq.false'
+                },
+                (payload) => {
+                    console.log("Received realtime notification:", payload.new);
+                    handleRealtimeNotification(payload.new);
+                }
+            )
+            .subscribe((status) => {
+                console.log(`Realtime subscription status: ${status}`);
+            });
+            
+        console.log("Realtime subscription created successfully");
+    } catch (error) {
+        console.error("Error setting up realtime notifications:", error);
+    }
 }
 
 function handleRealtimeNotification(notification) {
@@ -1274,3 +1283,22 @@ window.addEventListener('beforeunload', () => {
         clearTimeout(rotatorTimeout);
     }
 });
+
+// Add immediate debug test toast to verify display is working
+window.addEventListener('DOMContentLoaded', () => {
+    // Add a small delay to ensure everything is loaded
+    setTimeout(() => {
+        console.log("Testing toast display functionality...");
+        showToast(
+            "Test User", 
+            "Test Product", 
+            "12:34", 
+            new Date().toISOString(), 
+            null, 
+            true, 
+            10000
+        );
+    }, 2000);
+});
+
+console.log("Letup notification script loaded successfully");
