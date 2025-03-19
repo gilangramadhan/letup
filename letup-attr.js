@@ -720,21 +720,22 @@ function handleRealtimeNotification(notification) {
     const isPaymentConfirmation =
         notification.event_type === 'order.payment_status_changed' &&
         notification.payment_status === 'paid';
-
-    // Flag that this is a realtime notification (for dismiss button logic)
-    const isRealtime = true;
     
     // Calculate the longer delay for realtime notifications
     const realtimeDelay = LETUP_CONFIG.autoHideDelay * LETUP_CONFIG.realtimeDelayMultiplier;
 
+    let toastEl;
     if (isPaymentConfirmation) {
-        // Payment confirmation notification
-        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, isRealtime, realtimeDelay);
+        // Pass isRealtime=false to prevent the internal logic from handling dismiss buttons
+        toastEl = showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, false, realtimeDelay);
     } else {
-        // Standard order notification
         const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
-        showToast(buyer, product, hhmm, createdAt, productImageUrl, isRealtime, realtimeDelay);
+        // Pass isRealtime=false to prevent the internal logic from handling dismiss buttons
+        toastEl = showToast(buyer, product, hhmm, createdAt, productImageUrl, false, realtimeDelay);
     }
+    
+    // ALWAYS add the dismiss button directly to realtime notifications
+    addDismissButton(toastEl);
 }
 
 // Add this missing function
@@ -1055,7 +1056,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     toastEl.appendChild(contentEl);
 
     // Close button - only add if it's a realtime notification
-    if (isRealtime && LETUP_CONFIG.showDismissButton) {
+    if (LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1192,16 +1193,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
     toastEl.appendChild(contentEl);
 
     // Close button - always show for realtime notifications regardless of config setting
-    if (isRealtime) {
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "toast-close";
-        closeBtn.innerText = "x";
-        closeBtn.addEventListener("click", () => {
-            hideToast(toastEl);
-        });
-        toastEl.appendChild(closeBtn);
-    } else if (LETUP_CONFIG.showDismissButton) {
-        // Only check config for non-realtime notifications
+    if (LETUP_CONFIG.showDismissButton) {
         const closeBtn = document.createElement("button");
         closeBtn.className = "toast-close";
         closeBtn.innerText = "x";
@@ -1217,7 +1209,25 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
 
     return toastEl;
 }
+/**
+ * Helper function to add a dismiss button to any toast
+ * This ensures realtime notifications always have a dismiss button
+ */
+function addDismissButton(toastEl) {
+    // Check if a dismiss button already exists
+    if (toastEl.querySelector('.toast-close')) {
+        return toastEl; // Don't add duplicate buttons
+    }
 
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "toast-close";
+    closeBtn.innerText = "x";
+    closeBtn.addEventListener("click", () => {
+        hideToast(toastEl);
+    });
+    toastEl.appendChild(closeBtn);
+    return toastEl;
+}
 /************************************************
  * Modified: Show Next Rotator Notification with Delay
  ************************************************/
