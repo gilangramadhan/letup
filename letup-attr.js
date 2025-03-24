@@ -19,7 +19,9 @@ const LETUP_CONFIG = {
     purchaseText: 'telah membeli',       // Default text for purchase notifications
     position: 'top',                    // Position of toast notifications: 'top' or 'bottom'
     censorBuyerNames: true,              // Whether to censor buyer names in notifications (default: true)
-    realtimeDelayMultiplier: 2          // How much longer realtime notifications stay visible compared to rotator ones
+    realtimeDelayMultiplier: 2,          // How much longer realtime notifications stay visible compared to rotator ones
+    showOrderId: false     // Whether to show order ID instead of buyer name (default: false)
+
 };
 
 /**************************************************
@@ -402,6 +404,11 @@ addStyles();
             LETUP_CONFIG.censorBuyerNames = 
                 currentScript.getAttribute('data-censor-names') === 'true';
         }
+        // Parse boolean attribute for showing order ID
+        if (currentScript.hasAttribute('data-show-order-id')) {
+            LETUP_CONFIG.showOrderId = 
+                currentScript.getAttribute('data-show-order-id') === 'true';
+        }
 
         // Parse position attribute
         if (currentScript.hasAttribute('data-position')) {
@@ -528,6 +535,11 @@ addStyles();
     if (container.hasAttribute('data-censor-names')) {
         LETUP_CONFIG.censorBuyerNames =
             container.getAttribute('data-censor-names') === 'true';
+    }
+    // Parse boolean attribute for showing order ID
+    if (container.hasAttribute('data-show-order-id')) {
+        LETUP_CONFIG.showOrderId =
+            container.getAttribute('data-show-order-id') === 'true';
     }
 
     // Parse position attribute
@@ -703,6 +715,7 @@ function handleRealtimeNotification(notification) {
     const createdAt = notification.created_at;
     const lastUpdatedAt = notification.last_updated_at || notification.created_at;
     const productImageUrl = notification.product_image_url || LETUP_CONFIG.productImageUrl;
+    const orderId = notification.order_id || null; // Extract order_id from notification
 
     // Update the displayed flag to prevent showing this notification again
     updateNotificationDisplayed(notification.id);
@@ -720,11 +733,11 @@ function handleRealtimeNotification(notification) {
 
     if (isPaymentConfirmation) {
         // Payment confirmation notification
-        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, isRealtime, realtimeDelay);
+        showPaymentConfirmationToast(buyer, product, createdAt, lastUpdatedAt, productImageUrl, isRealtime, realtimeDelay, orderId);
     } else {
         // Standard order notification
         const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
-        showToast(buyer, product, hhmm, createdAt, productImageUrl, isRealtime, realtimeDelay);
+        showToast(buyer, product, hhmm, createdAt, productImageUrl, isRealtime, realtimeDelay, orderId);
     }
 }
 
@@ -943,7 +956,7 @@ function getToastContainer() {
 /************************************************
  * 6. showToast() - Creates & displays a new toast
  ************************************************/
-function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime = false, customDelay = null) {
+function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime = false, customDelay = null, orderId = null) {
     // Get container with proper position class
     const container = getToastContainer();
     
@@ -1024,10 +1037,19 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     // Apply name censoring based on configuration setting
     const displayName = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
 
+    // Decide what to display - order ID or buyer name
+    let displayText;
+    if (LETUP_CONFIG.showOrderId && orderId) {
+        displayText = `Order #${orderId}`; 
+    } else {
+        // Use censored name if configured, otherwise use plain buyer name
+        displayText = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
+    }
+
     // Heading with purchase message
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${displayName} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${displayText} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
     
     // Subtext with inline image (hh:mm)
