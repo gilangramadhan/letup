@@ -1095,7 +1095,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
 /************************************************
  * 7. Modified showPaymentConfirmationToast() - now includes hh:mm time
  ************************************************/
-function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, productImageUrl, isRealtime = false, customDelay = null) {
+function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, productImageUrl, isRealtime = false, customDelay = null, orderId = null) {
     // Get container with proper position class
     const container = getToastContainer();
     
@@ -1173,13 +1173,19 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
 
-    // Conditionally censor the buyer name based on configuration
-    const displayName = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
+    // Decide what to display - order ID or buyer name
+    let displayText;
+    if (LETUP_CONFIG.showOrderId && orderId) {
+        displayText = `Order #${orderId}`;
+    } else {
+        // Use censored name if configured, otherwise use plain buyer name
+        displayText = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
+    }
 
     // Heading with payment confirmation message - use configurable purchase text
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    headingEl.innerHTML = `${displayName} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
+    headingEl.innerHTML = `${displayText} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
     
     // Add the heading to the content element
     contentEl.appendChild(headingEl);
@@ -1257,13 +1263,7 @@ function showNextRotatorNotification() {
     const createdAt = item.created_at;
     const lastUpdatedAt = item.last_updated_at || item.created_at;
     const productImageUrl = item.product_image_url || LETUP_CONFIG.productImageUrl;
-
-    // Log for debugging
-    console.log("Showing notification with dates:", {
-        createdAt,
-        lastUpdatedAt,
-        productImageUrl
-    });
+    const orderId = item.order_id || null; // Extract order_id
 
     // Display the notification and get reference to the element
     // Pass false for isRealtime to indicate this is a rotator notification
@@ -1274,7 +1274,8 @@ function showNextRotatorNotification() {
         lastUpdatedAt,
         productImageUrl,
         false, // Not a realtime notification
-        null   // Use default delay
+        null,  // Use default delay
+        orderId // Pass the order ID
     );
 
     // First timeout: Hide the toast after displaying it for configured delay
