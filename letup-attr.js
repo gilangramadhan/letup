@@ -1385,7 +1385,7 @@ function showSmartToast(type, productName, count, productImageUrl, isRealtime = 
     if (container.children.length >= LETUP_CONFIG.maxToasts) {
         container.removeChild(container.firstElementChild);
     }
-
+    
     // Main toast element
     const toastEl = document.createElement("div");
     toastEl.className = `toast smart-toast smart-${type}-toast`;
@@ -1403,9 +1403,22 @@ function showSmartToast(type, productName, count, productImageUrl, isRealtime = 
     const flipImgBack = document.createElement("div");
     flipImgBack.className = "flip-img-back";
 
-    // Use type-specific lottie animation
+    // Use type-specific lottie animation with fallback
     const lottieEl = document.createElement("dotlottie-player");
-    lottieEl.setAttribute("src", LETUP_CONFIG.smartNotifications.lottieFiles[type]);
+
+    // Default URLs if configuration is missing
+    const defaultLottieUrls = {
+        purchase: "https://lottie.host/7a99fdde-4cf8-49c9-b222-6e2e5cdd56b4/KLZbalXjRE.lottie",
+        checkout: "https://lottie.host/c88b5fce-d21e-4764-9ff2-942850af6aa1/3DxgPA17Wn.lottie"
+    };
+
+    // Get URL from config if available, otherwise use default
+    const lottieUrl = LETUP_CONFIG.smartNotifications.lottieFiles &&
+        LETUP_CONFIG.smartNotifications.lottieFiles[type] ?
+        LETUP_CONFIG.smartNotifications.lottieFiles[type] :
+        defaultLottieUrls[type] || defaultLottieUrls.purchase;
+
+    lottieEl.setAttribute("src", lottieUrl);
     lottieEl.setAttribute("background", "transparent");
     lottieEl.setAttribute("speed", "1");
     lottieEl.setAttribute("direction", "1");
@@ -1508,57 +1521,56 @@ function showNextRotatorNotification() {
         const item = rotatorData.shift();
         rotatorData.push(item);
 
-    // Get values from the data item
-    const buyer = item.buyer_name || 'Seseorang';
-    const productName = item.product_name || 'produk ini';
-    const createdAt = item.created_at;
-    const lastUpdatedAt = item.last_updated_at || item.created_at;
-    const productImageUrl = item.product_image_url || LETUP_CONFIG.productImageUrl;
-    const orderId = item.order_id || null;
-    
-    let toastEl;
-    
-    // Check if we should show a smart notification
-    if (LETUP_CONFIG.smartNotifications.enabled && 
-        item.productCount >= LETUP_CONFIG.smartNotifications.thresholds.purchase && 
-        productName) {
+        // Get values from the data item
+        const buyer = item.buyer_name || 'Seseorang';
+        const productName = item.product_name || 'produk ini';
+        const createdAt = item.created_at;
+        const lastUpdatedAt = item.last_updated_at || item.created_at;
+        const productImageUrl = item.product_image_url || LETUP_CONFIG.productImageUrl;
+        const orderId = item.order_id || null;
         
-        // Show a smart purchase notification
-        toastEl = showSmartToast(
-            'purchase',
-            productName,
-            item.productCount,
-            productImageUrl,
-            false, // Not a realtime notification
-            null    // Use default delay
-        );
-    } else {
-        // Show regular payment confirmation toast
-        toastEl = showPaymentConfirmationToast(
-            buyer, 
-            productName, 
-            createdAt, 
-            lastUpdatedAt,
-            productImageUrl,
-            false, // Not a realtime notification
-            null,  // Use default delay
-            orderId
-        );
-    }
-    
+        let toastEl;
+        
+        // Check if we should show a smart notification
+        if (LETUP_CONFIG.smartNotifications.enabled && 
+            item.productCount >= LETUP_CONFIG.smartNotifications.thresholds.purchase && 
+            productName) {
+            
+            // Show a smart purchase notification
+            toastEl = showSmartToast(
+                'purchase',
+                productName,
+                item.productCount,
+                productImageUrl,
+                false, // Not a realtime notification
+                null    // Use default delay
+            );
+        } else {
+            // Show regular payment confirmation toast
+            toastEl = showPaymentConfirmationToast(
+                buyer, 
+                productName, 
+                createdAt, 
+                lastUpdatedAt,
+                productImageUrl,
+                false, // Not a realtime notification
+                null,  // Use default delay
+                orderId
+            );
+        }
+        
+        // Schedule hide and next
+        setTimeout(() => {
+            hideToast(toastEl);
+            rotatorTimeout = setTimeout(showNextRotatorNotification, LETUP_CONFIG.rotatorInterval);
+        }, LETUP_CONFIG.autoHideDelay);
+        
     } catch (error) {
-    console.error('Error in showNextRotatorNotification:', error);
-    
-    // Continue rotation despite error
-    rotatorTimeout = setTimeout(showNextRotatorNotification, LETUP_CONFIG.rotatorInterval);
-    }
-
-    // Schedule hide and next
-    setTimeout(() => {
-        hideToast(toastEl);
+        console.error('Error in showNextRotatorNotification:', error);
+        
+        // Continue rotation despite error
         rotatorTimeout = setTimeout(showNextRotatorNotification, LETUP_CONFIG.rotatorInterval);
-    }, LETUP_CONFIG.autoHideDelay);
-
+    }
 }
 
 /**************************************************
