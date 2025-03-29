@@ -181,19 +181,30 @@ function addStyles() {
         /* Close button */
         .toast-close {
             position: absolute;
-            top: 0;
-            right: 7px;
+            top: 9px;
+            right: 13px;
             cursor: pointer;
-            background: none;
+            background-color: #f8f8f8;
             border: none;
-            font-size: 11px;
-            color: #b4b4b4;
-            padding: 5px;
+            font-size: 9px;
+            color: #c3c3c3;
+            padding: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            line-height: 1;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
         }
-        
+
         .toast-close:hover {
-            color: #000;
-        }
+            background-color: #f00;
+            color: #fff;
+            transform: scale(1.1);
+}
         
         /* Flip container */
         .flip-container {
