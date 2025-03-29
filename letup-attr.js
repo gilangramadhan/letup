@@ -1468,20 +1468,68 @@ function showAggregateToast(count, productName, type, periodDays) {
         toastEl.classList.add('payment-toast');
     }
 
-    // Lottie animation based on type
+    // Create flip container structure
+    const flipContainer = document.createElement("div");
+    flipContainer.className = "flip-container";
+
+    const flipImg = document.createElement("div");
+    flipImg.className = "flip-img";
+
+    const flipImgFront = document.createElement("div");
+    flipImgFront.className = "flip-img-front";
+
+    const flipImgBack = document.createElement("div");
+    flipImgBack.className = "flip-img-back";
+
+    // Lottie Player (for front) based on type
     const lottieEl = document.createElement("dotlottie-player");
+    
     if (type === 'checkout') {
         lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
     } else {
         lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
     }
+    
     lottieEl.setAttribute("background", "transparent");
     lottieEl.setAttribute("speed", "1");
+    lottieEl.setAttribute("direction", "1");
+    lottieEl.setAttribute("playMode", "normal");
     lottieEl.setAttribute("autoplay", "");
     lottieEl.style.width = "64px";
     lottieEl.style.height = "64px";
-    lottieEl.style.flexShrink = "0";
-    toastEl.appendChild(lottieEl);
+    flipImgFront.appendChild(lottieEl);
+
+    // Back side - create aggregate icon
+    const imgEl = document.createElement("div");
+    imgEl.style.width = "54px";
+    imgEl.style.height = "54px";
+    imgEl.style.borderRadius = "50%";
+    imgEl.style.display = "flex";
+    imgEl.style.alignItems = "center";
+    imgEl.style.justifyContent = "center";
+    imgEl.style.fontSize = "24px";
+    imgEl.style.fontWeight = "bold";
+    
+    // Color the back based on type
+    if (type === 'checkout') {
+        imgEl.style.backgroundColor = "#09afed";
+        imgEl.style.color = "white";
+        imgEl.innerHTML = count;
+    } else {
+        imgEl.style.backgroundColor = "#00a244";
+        imgEl.style.color = "white";
+        imgEl.innerHTML = count;
+    }
+    
+    flipImgBack.appendChild(imgEl);
+
+    // Assemble the flip container
+    flipImg.appendChild(flipImgFront);
+    flipImg.appendChild(flipImgBack);
+    flipContainer.appendChild(flipImg);
+
+    // Add to toast
+    toastEl.appendChild(flipContainer);
 
     // Content wrapper
     const contentEl = document.createElement("div");
