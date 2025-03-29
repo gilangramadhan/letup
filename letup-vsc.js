@@ -65,7 +65,12 @@ function addStyles() {
             
             /* Animations */
             --letup-transition-duration: 0.3s;
-            --letup-flip-animation: flip 0.5s ease-in-out 1 forwards;
+            --letup-flip-animation: flip var(--letup-flip-duration) ease-in-out 1 forwards;
+            --letup-slide-animation: all var(--letup-transition-duration) ease;
+            --letup-flip-start: 180deg;
+            --letup-flip-end: 0deg;
+            --letup-flip-delay: 1.5s;
+            --letup-flip-duration: 0.5s;
             
             /* Responsive breakpoints */
             --letup-mobile-breakpoint: 768px;
@@ -74,6 +79,9 @@ function addStyles() {
             /* Special styles */
             --letup-checkout-color: #09afed;
             --letup-purchase-color: #00a244;
+            --letup-flip-perspective: 1000px;
+            --letup-flip-size: 64px;
+            --letup-mobile-flip-size: 48px;
         }
 
         #toast-container {
@@ -194,8 +202,8 @@ function addStyles() {
         }
 
         @keyframes flip {
-            0% { transform: rotateY(0deg); }
-            100% { transform: rotateY(180deg); }
+            0% { transform: rotateY(var(--letup-flip-start, 180deg)); }
+            100% { transform: rotateY(var(--letup-flip-end, 0deg)); }
         }
 
         .purchase-text {
