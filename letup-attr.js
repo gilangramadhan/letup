@@ -24,6 +24,16 @@ const LETUP_CONFIG = {
 
 };
 
+// Add this to your LETUP_CONFIG at the top of your file
+LETUP_CONFIG.enableAggregateNotifications = true;    // Set to false to disable aggregate count notifications
+LETUP_CONFIG.aggregateDisplayInterval = 30 * 1000;   // Show toast notifications every 30 seconds
+LETUP_CONFIG.aggregateRefreshInterval = 5 * 60 * 1000; // Refresh data from Supabase every 5 minutes
+LETUP_CONFIG.aggregatePeriodDays = 1;                // Show counts for the last X days (default: 1 day)
+LETUP_CONFIG.checkoutCountText = "orang telah checkout";  // Text for checkout count notifications
+LETUP_CONFIG.purchaseCountText = "orang telah membeli";   // Text for purchase count notifications
+LETUP_CONFIG.maxProductsToShow = 3;                 // Maximum number of products to rotate through
+
+
 /**************************************************
  * Add built-in CSS styles
  **************************************************/
@@ -1263,6 +1273,257 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
     setTimeout(() => hideToast(toastEl), hideDelay);
 
     return toastEl;
+}
+
+/**************************************************
+ * 8. Aggregate Notification System with Caching
+ **************************************************/
+// Cache to store aggregate data
+const aggregateCache = {
+    lastUpdated: null,
+    checkoutData: [],
+    purchaseData: [],
+    currentProductIndex: 0  // Track which product to show next
+};
+
+// Initialize aggregate notification system
+function initAggregateNotifications() {
+    console.log("Initializing aggregate notifications with caching");
+    
+    // First, fetch the data
+    refreshAggregateData().then(() => {
+        // Start display cycle (show toast every 30 seconds)
+        setInterval(showCachedAggregateToast, LETUP_CONFIG.aggregateDisplayInterval);
+        
+        // Start refresh cycle (update cache every 5 minutes)
+        setInterval(refreshAggregateData, LETUP_CONFIG.aggregateRefreshInterval);
+    });
+}
+
+// Refresh aggregate data from Supabase and update cache
+async function refreshAggregateData() {
+    try {
+        console.log("Refreshing aggregate notification data from Supabase");
+        
+        // Calculate timestamp for X days ago
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - LETUP_CONFIG.aggregatePeriodDays);
+        
+        // Get checkout counts
+        const { data: checkoutData, error: checkoutError } = await supabase
+            .from(LETUP_CONFIG.tableName)
+            .select('product_name, count(*)')
+            .eq('event_type', 'order.created')
+            .gte('created_at', daysAgo.toISOString())
+            .group('product_name');
+            
+        if (checkoutError) {
+            console.error("Error fetching checkout counts:", checkoutError);
+        } else {
+            // Filter out zero counts and update cache
+            aggregateCache.checkoutData = (checkoutData || []).filter(item => item.count > 0);
+        }
+        
+        // Get purchase counts
+        const { data: purchaseData, error: purchaseError } = await supabase
+            .from(LETUP_CONFIG.tableName)
+            .select('product_name, count(*)')
+            .eq('event_type', 'order.payment_status_changed')
+            .eq('payment_status', 'paid')
+            .gte('created_at', daysAgo.toISOString())
+            .group('product_name');
+            
+        if (purchaseError) {
+            console.error("Error fetching purchase counts:", purchaseError);
+        } else {
+            // Filter out zero counts and update cache
+            aggregateCache.purchaseData = (purchaseData || []).filter(item => item.count > 0);
+        }
+        
+        // Update cache timestamp
+        aggregateCache.lastUpdated = new Date();
+        
+        console.log("Aggregate data refreshed:", {
+            checkoutCount: aggregateCache.checkoutData.length,
+            purchaseCount: aggregateCache.purchaseData.length,
+            timestamp: aggregateCache.lastUpdated
+        });
+        
+        return true;
+    } catch (err) {
+        console.error('Error refreshing aggregate data:', err);
+        return false;
+    }
+}
+
+// Show toast from cached data
+function showCachedAggregateToast() {
+    // Skip if no data available
+    if (!aggregateCache.lastUpdated) {
+        console.log("No aggregate data available yet");
+        return;
+    }
+    
+    // Prepare arrays of data to show
+    const dataToShow = [];
+    
+    // Add checkout data if available
+    if (aggregateCache.checkoutData.length > 0) {
+        aggregateCache.checkoutData.forEach(item => {
+            dataToShow.push({
+                count: item.count,
+                productName: item.product_name,
+                type: 'checkout'
+            });
+        });
+    }
+    
+    // Add purchase data if available
+    if (aggregateCache.purchaseData.length > 0) {
+        aggregateCache.purchaseData.forEach(item => {
+            dataToShow.push({
+                count: item.count,
+                productName: item.product_name,
+                type: 'purchase'
+            });
+        });
+    }
+    
+    // Skip if no data to show
+    if (dataToShow.length === 0) {
+        console.log("No aggregate data to display");
+        return;
+    }
+    
+    // Rotate through products to show
+    let itemToShow;
+    
+    // If we have too many products, rotate through them
+    if (dataToShow.length > LETUP_CONFIG.maxProductsToShow) {
+        // Get item at current index and increment for next time
+        itemToShow = dataToShow[aggregateCache.currentProductIndex];
+        
+        // Increment index and wrap around if needed
+        aggregateCache.currentProductIndex = (aggregateCache.currentProductIndex + 1) % dataToShow.length;
+    } else {
+        // Choose a random item if we have a smaller set
+        const randomIndex = Math.floor(Math.random() * dataToShow.length);
+        itemToShow = dataToShow[randomIndex];
+    }
+    
+    // Show the selected toast notification
+    showAggregateToast(
+        itemToShow.count,
+        itemToShow.productName,
+        itemToShow.type,
+        LETUP_CONFIG.aggregatePeriodDays
+    );
+}
+
+// Show aggregate toast notification (same as before)
+function showAggregateToast(count, productName, type, periodDays) {
+    // Get container with proper position class
+    const container = getToastContainer();
+    
+    // Limit to max toast elements based on config
+    if (container.children.length >= LETUP_CONFIG.maxToasts) {
+        // Remove the oldest toast
+        container.removeChild(container.firstElementChild);
+    }
+
+    // Create toast element
+    const toastEl = document.createElement("div");
+    toastEl.className = "toast aggregate-toast";
+    
+    // Add specific class based on type
+    if (type === 'purchase') {
+        toastEl.classList.add('payment-toast');
+    }
+
+    // Lottie animation based on type
+    const lottieEl = document.createElement("dotlottie-player");
+    if (type === 'checkout') {
+        lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
+    } else {
+        lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
+    }
+    lottieEl.setAttribute("background", "transparent");
+    lottieEl.setAttribute("speed", "1");
+    lottieEl.setAttribute("autoplay", "");
+    lottieEl.style.width = "64px";
+    lottieEl.style.height = "64px";
+    lottieEl.style.flexShrink = "0";
+    toastEl.appendChild(lottieEl);
+
+    // Content wrapper
+    const contentEl = document.createElement("div");
+    contentEl.className = "toast-content";
+
+    // Heading with appropriate message
+    const headingEl = document.createElement("div");
+    headingEl.className = "toast-heading";
+    
+    const countText = `<strong>${count}</strong>`;
+    const typeText = type === 'checkout' 
+        ? `<span class="checkout-text">${LETUP_CONFIG.checkoutCountText}</span>` 
+        : `<span class="purchase-text">${LETUP_CONFIG.purchaseCountText}</span>`;
+    
+    headingEl.innerHTML = `${countText} ${typeText} <strong>${productName}</strong>!`;
+    contentEl.appendChild(headingEl);
+    
+    // Subtext with time period (in days)
+    const subtextEl = document.createElement("div");
+    subtextEl.className = "toast-subtext";
+    
+    // Format the period text differently based on number of days
+    let periodText;
+    if (periodDays === 1) {
+        periodText = "dalam 24 jam terakhir";  // For 1 day, keep it as "24 jam terakhir"
+    } else {
+        periodText = `dalam ${periodDays} hari terakhir`;
+    }
+    
+    subtextEl.innerHTML = `<div class="toast-left"><span>${periodText}</span></div>`;
+    contentEl.appendChild(subtextEl);
+
+    toastEl.appendChild(contentEl);
+
+    // Close button
+    if (LETUP_CONFIG.showDismissButton) {
+        const closeBtn = document.createElement("div");
+        closeBtn.className = "toast-close";
+        closeBtn.innerText = "x";
+        closeBtn.setAttribute("tabindex", "0");
+        closeBtn.setAttribute("role", "button");
+        closeBtn.addEventListener("click", () => {
+            hideToast(toastEl);
+        });
+        closeBtn.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                hideToast(toastEl);
+            }
+        });
+        toastEl.appendChild(closeBtn);
+    }
+
+    // Append to container
+    container.appendChild(toastEl);
+
+    // Animate slide-in
+    requestAnimationFrame(() => {
+        toastEl.classList.add("show");
+    });
+
+    // Auto-hide after delay
+    setTimeout(() => hideToast(toastEl), LETUP_CONFIG.autoHideDelay);
+
+    return toastEl;
+}
+
+// Add this to your initSupabase() function after the other initializations
+if (LETUP_CONFIG.enableAggregateNotifications) {
+    initAggregateNotifications();
 }
 
 /************************************************
