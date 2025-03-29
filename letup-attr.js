@@ -1288,14 +1288,26 @@ const aggregateCache = {
 
 // Initialize aggregate notification system
 function initAggregateNotifications() {
-    console.log("Initializing aggregate notifications with caching");
+    console.log("=== AGGREGATE TOASTS: System initializing ===");
+    console.log("Display interval:", LETUP_CONFIG.aggregateDisplayInterval / 1000, "seconds");
+    console.log("Refresh interval:", LETUP_CONFIG.aggregateRefreshInterval / 60000, "minutes");
+    console.log("Period:", LETUP_CONFIG.aggregatePeriodDays, "days");
     
     // First, fetch the data
-    refreshAggregateData().then(() => {
+    refreshAggregateData().then(success => {
+        console.log("=== AGGREGATE TOASTS: Initial data load " + (success ? "SUCCESS" : "FAILED") + " ===");
+        
+        if (success) {
+            console.log("Checkout data items:", aggregateCache.checkoutData.length);
+            console.log("Purchase data items:", aggregateCache.purchaseData.length);
+        }
+        
         // Start display cycle (show toast every 30 seconds)
+        console.log("=== AGGREGATE TOASTS: Starting display cycle ===");
         setInterval(showCachedAggregateToast, LETUP_CONFIG.aggregateDisplayInterval);
         
         // Start refresh cycle (update cache every 5 minutes)
+        console.log("=== AGGREGATE TOASTS: Starting refresh cycle ===");
         setInterval(refreshAggregateData, LETUP_CONFIG.aggregateRefreshInterval);
     });
 }
@@ -1303,13 +1315,15 @@ function initAggregateNotifications() {
 // Refresh aggregate data from Supabase and update cache
 async function refreshAggregateData() {
     try {
-        console.log("Refreshing aggregate notification data from Supabase");
+        console.log("=== AGGREGATE TOASTS: Refreshing data from Supabase ===");
         
         // Calculate timestamp for X days ago
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - LETUP_CONFIG.aggregatePeriodDays);
+        console.log("Looking for data since:", daysAgo.toISOString());
         
         // Get checkout counts
+        console.log("Fetching checkout counts...");
         const { data: checkoutData, error: checkoutError } = await supabase
             .from(LETUP_CONFIG.tableName)
             .select('product_name, count(*)')
@@ -1320,11 +1334,14 @@ async function refreshAggregateData() {
         if (checkoutError) {
             console.error("Error fetching checkout counts:", checkoutError);
         } else {
+            console.log("Checkout query successful, raw data:", checkoutData);
             // Filter out zero counts and update cache
             aggregateCache.checkoutData = (checkoutData || []).filter(item => item.count > 0);
+            console.log("Filtered checkout data:", aggregateCache.checkoutData);
         }
         
         // Get purchase counts
+        console.log("Fetching purchase counts...");
         const { data: purchaseData, error: purchaseError } = await supabase
             .from(LETUP_CONFIG.tableName)
             .select('product_name, count(*)')
@@ -1336,31 +1353,33 @@ async function refreshAggregateData() {
         if (purchaseError) {
             console.error("Error fetching purchase counts:", purchaseError);
         } else {
+            console.log("Purchase query successful, raw data:", purchaseData);
             // Filter out zero counts and update cache
             aggregateCache.purchaseData = (purchaseData || []).filter(item => item.count > 0);
+            console.log("Filtered purchase data:", aggregateCache.purchaseData);
         }
         
         // Update cache timestamp
         aggregateCache.lastUpdated = new Date();
         
-        console.log("Aggregate data refreshed:", {
-            checkoutCount: aggregateCache.checkoutData.length,
-            purchaseCount: aggregateCache.purchaseData.length,
-            timestamp: aggregateCache.lastUpdated
-        });
+        console.log("=== AGGREGATE TOASTS: Data refresh complete ===");
+        console.log("Checkout items:", aggregateCache.checkoutData.length);
+        console.log("Purchase items:", aggregateCache.purchaseData.length);
         
-        return true;
+        return aggregateCache.checkoutData.length > 0 || aggregateCache.purchaseData.length > 0;
     } catch (err) {
-        console.error('Error refreshing aggregate data:', err);
+        console.error('=== AGGREGATE TOASTS: Error refreshing data ===', err);
         return false;
     }
 }
 
 // Show toast from cached data
 function showCachedAggregateToast() {
+    console.log("=== AGGREGATE TOASTS: Attempting to show toast ===");
+    
     // Skip if no data available
     if (!aggregateCache.lastUpdated) {
-        console.log("No aggregate data available yet");
+        console.log("No aggregate data available yet - skipping toast display");
         return;
     }
     
@@ -1391,9 +1410,11 @@ function showCachedAggregateToast() {
     
     // Skip if no data to show
     if (dataToShow.length === 0) {
-        console.log("No aggregate data to display");
+        console.log("No aggregate data to display - skipping toast");
         return;
     }
+    
+    console.log("Data items available to show:", dataToShow.length);
     
     // Rotate through products to show
     let itemToShow;
@@ -1402,6 +1423,7 @@ function showCachedAggregateToast() {
     if (dataToShow.length > LETUP_CONFIG.maxProductsToShow) {
         // Get item at current index and increment for next time
         itemToShow = dataToShow[aggregateCache.currentProductIndex];
+        console.log("Rotating through products - showing index:", aggregateCache.currentProductIndex);
         
         // Increment index and wrap around if needed
         aggregateCache.currentProductIndex = (aggregateCache.currentProductIndex + 1) % dataToShow.length;
@@ -1409,7 +1431,10 @@ function showCachedAggregateToast() {
         // Choose a random item if we have a smaller set
         const randomIndex = Math.floor(Math.random() * dataToShow.length);
         itemToShow = dataToShow[randomIndex];
+        console.log("Randomly selected item at index:", randomIndex);
     }
+    
+    console.log("Selected item to show:", itemToShow);
     
     // Show the selected toast notification
     showAggregateToast(
@@ -1418,10 +1443,13 @@ function showCachedAggregateToast() {
         itemToShow.type,
         LETUP_CONFIG.aggregatePeriodDays
     );
+    
+    console.log("=== AGGREGATE TOASTS: Toast displayed successfully ===");
 }
 
-// Show aggregate toast notification (same as before)
+// Show aggregate toast notification
 function showAggregateToast(count, productName, type, periodDays) {
+    console.log(`Showing aggregate toast: ${count} ${type} for ${productName}`);
     // Get container with proper position class
     const container = getToastContainer();
     
@@ -1523,7 +1551,10 @@ function showAggregateToast(count, productName, type, periodDays) {
 
 // Add this to your initSupabase() function after the other initializations
 if (LETUP_CONFIG.enableAggregateNotifications) {
+    console.log("=== AGGREGATE TOASTS: Feature enabled, initializing... ===");
     initAggregateNotifications();
+} else {
+    console.log("=== AGGREGATE TOASTS: Feature is disabled in config ===");
 }
 
 /************************************************
