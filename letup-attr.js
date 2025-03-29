@@ -1557,6 +1557,114 @@ if (LETUP_CONFIG.enableAggregateNotifications) {
     console.log("=== AGGREGATE TOASTS: Feature is disabled in config ===");
 }
 
+// ... existing code ...
+
+/**************************************************
+ * 9. Test Button for Aggregate Toasts
+ **************************************************/
+function createAggregateTestButton() {
+    console.log("=== AGGREGATE TOASTS: Creating test buttons ===");
+    
+    // Create test button container
+    const buttonContainer = document.createElement("div");
+    buttonContainer.id = "letup-test-buttons";
+    buttonContainer.style.position = "fixed";
+    buttonContainer.style.bottom = "20px";
+    buttonContainer.style.right = "20px";
+    buttonContainer.style.zIndex = "9998";
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.flexDirection = "column";
+    buttonContainer.style.gap = "10px";
+    
+    // Create checkout test button
+    const checkoutButton = document.createElement("button");
+    checkoutButton.innerText = "Test Checkout Toast";
+    checkoutButton.style.padding = "8px 12px";
+    checkoutButton.style.backgroundColor = "#09afed";
+    checkoutButton.style.color = "white";
+    checkoutButton.style.border = "none";
+    checkoutButton.style.borderRadius = "4px";
+    checkoutButton.style.cursor = "pointer";
+    checkoutButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+    checkoutButton.style.fontFamily = "sans-serif";
+    checkoutButton.style.fontSize = "14px";
+    
+    // Add hover effect
+    checkoutButton.onmouseover = function() {
+        this.style.backgroundColor = "#0a8ec0";
+    };
+    checkoutButton.onmouseout = function() {
+        this.style.backgroundColor = "#09afed";
+    };
+    
+    // Add click handler for checkout test
+    checkoutButton.addEventListener("click", function() {
+        console.log("=== AGGREGATE TOASTS: Showing test checkout toast ===");
+        showAggregateToast(
+            Math.floor(Math.random() * 50) + 5, // Random number between 5-55
+            "Product Example",
+            "checkout",
+            LETUP_CONFIG.aggregatePeriodDays
+        );
+    });
+    
+    // Create purchase test button
+    const purchaseButton = document.createElement("button");
+    purchaseButton.innerText = "Test Purchase Toast";
+    purchaseButton.style.padding = "8px 12px";
+    purchaseButton.style.backgroundColor = "#00a244";
+    purchaseButton.style.color = "white";
+    purchaseButton.style.border = "none";
+    purchaseButton.style.borderRadius = "4px";
+    purchaseButton.style.cursor = "pointer";
+    purchaseButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+    purchaseButton.style.fontFamily = "sans-serif";
+    purchaseButton.style.fontSize = "14px";
+    
+    // Add hover effect
+    purchaseButton.onmouseover = function() {
+        this.style.backgroundColor = "#008538";
+    };
+    purchaseButton.onmouseout = function() {
+        this.style.backgroundColor = "#00a244";
+    };
+    
+    // Add click handler for purchase test
+    purchaseButton.addEventListener("click", function() {
+        console.log("=== AGGREGATE TOASTS: Showing test purchase toast ===");
+        showAggregateToast(
+            Math.floor(Math.random() * 20) + 1, // Random number between 1-20
+            "Product Example",
+            "purchase",
+            LETUP_CONFIG.aggregatePeriodDays
+        );
+    });
+    
+    // Append buttons to container
+    buttonContainer.appendChild(checkoutButton);
+    buttonContainer.appendChild(purchaseButton);
+    
+    // Append container to body
+    document.body.appendChild(buttonContainer);
+    
+    console.log("=== AGGREGATE TOASTS: Test buttons created ===");
+}
+
+// Add this to your initSupabase() function after the other initializations
+if (LETUP_CONFIG.enableAggregateNotifications) {
+    console.log("=== AGGREGATE TOASTS: Feature enabled, initializing... ===");
+    initAggregateNotifications();
+    
+    // Add test buttons when in development mode or when a URL parameter is present
+    if (window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1' || 
+        window.location.search.includes('letup_test=true')) {
+        createAggregateTestButton();
+    }
+} else {
+    console.log("=== AGGREGATE TOASTS: Feature is disabled in config ===");
+}
+
 /************************************************
  * Modified: Show Next Rotator Notification with Delay
  ************************************************/
