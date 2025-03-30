@@ -32,6 +32,9 @@ LETUP_CONFIG.aggregatePeriodDays = 1;                // Show counts for the last
 LETUP_CONFIG.checkoutCountText = "orang telah checkout";  // Text for checkout count notifications
 LETUP_CONFIG.purchaseCountText = "orang telah membeli";   // Text for purchase count notifications
 LETUP_CONFIG.maxProductsToShow = 3;                 // Maximum number of products to rotate through
+LETUP_CONFIG.rotatorPeriodDays = 14;              // Configure how many days back to fetch data for rotator (default: 14 days)
+LETUP_CONFIG.rotatorIncludeCheckouts = true;      // Whether to include checkouts in rotator data (default: true)
+LETUP_CONFIG.rotatorIncludePurchases = true;      // Whether to include purchases in rotator data (default: true)
 
 
 /**************************************************
@@ -778,9 +781,12 @@ async function updateNotificationDisplayed(id) {
 }
 
 /************************************************
- * 3. Rotator Notifications System
+ * 3. Rotator Notifications System - Updated
  ************************************************/
 function initRotatorNotifications() {
+    console.log(`Initializing rotator notifications with table: ${LETUP_CONFIG.tableName}`);
+    console.log(`Period: ${LETUP_CONFIG.rotatorPeriodDays} days, Include Checkouts: ${LETUP_CONFIG.rotatorIncludeCheckouts}, Include Purchases: ${LETUP_CONFIG.rotatorIncludePurchases}`);
+
     // Immediately fetch initial data
     fetchRotatorData().then(() => {
         // Start if we have data and not running yet
@@ -796,20 +802,42 @@ function initRotatorNotifications() {
 
 async function fetchRotatorData() {
     try {
-        // Example: fetch old notifications from table
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        const { data, error } = await supabase
-            .from(LETUP_CONFIG.tableName) // Use the configurable table name
+        // Calculate period based on configuration
+        const periodDaysAgo = new Date();
+        periodDaysAgo.setDate(periodDaysAgo.getDate() - LETUP_CONFIG.rotatorPeriodDays);
+        
+        console.log(`Fetching rotator data since: ${periodDaysAgo.toISOString()}`);
+        
+        let query = supabase
+            .from(LETUP_CONFIG.tableName)
             .select('*')
-            .eq('event_type', 'order.payment_status_changed')
-            .eq('payment_status', 'paid')
-            .gte('created_at', sevenDaysAgo.toISOString())
-            .limit(LETUP_CONFIG.rotatorDataLimit); // Use the configurable limit
+            .gte('created_at', periodDaysAgo.toISOString())
+            .limit(LETUP_CONFIG.rotatorDataLimit);
+
+        // Build filter based on what's enabled
+        let filters = [];
+        
+        // Add purchase filter if enabled
+        if (LETUP_CONFIG.rotatorIncludePurchases) {
+            filters.push("(event_type.eq.order.payment_status_changed,payment_status.eq.paid)");
+        }
+        
+        // Add checkout filter if enabled
+        if (LETUP_CONFIG.rotatorIncludeCheckouts) {
+            filters.push("(event_type.eq.order.created)");
+        }
+        
+        // If both are enabled, combine with OR
+        if (filters.length > 0) {
+            query = query.or(filters.join(','));
+        }
+        
+        // Execute the query
+        const { data, error } = await query;
 
         if (error) {
             console.error("Error fetching rotator data:", error);
+            console.log("Query filters:", filters);
             return;
         }
 
@@ -819,6 +847,14 @@ async function fetchRotatorData() {
         rotatorData.sort(() => Math.random() - 0.5);
 
         console.log(`Fetched ${rotatorData.length} entries for rotator notifications`);
+        
+        if (rotatorData.length > 0) {
+            console.log("Sample data (first item):", {
+                event_type: rotatorData[0].event_type,
+                product: rotatorData[0].product_name,
+                created: rotatorData[0].created_at
+            });
+        }
 
         // If we got new data & rotator not running, start it
         if (!isRotatorRunning && rotatorData.length > 0) {
@@ -1724,6 +1760,7 @@ function hideToast(el) {
     }, 300);
 }
 
+// Update showNextRotatorNotification to handle both checkout and purchase notifications
 function showNextRotatorNotification() {
     if (rotatorData.length === 0) {
         isRotatorRunning = false;
@@ -1740,20 +1777,42 @@ function showNextRotatorNotification() {
     const createdAt = item.created_at;
     const lastUpdatedAt = item.last_updated_at || item.created_at;
     const productImageUrl = item.product_image_url || LETUP_CONFIG.productImageUrl;
-    const orderId = item.order_id || null; // Extract order_id
+    const orderId = item.order_id || null;
 
-    // Display the notification and get reference to the element
-    // Pass false for isRealtime to indicate this is a rotator notification
-    const toastEl = showPaymentConfirmationToast(
-        buyer, 
-        productName, 
-        createdAt, 
-        lastUpdatedAt,
-        productImageUrl,
-        false, // Not a realtime notification
-        null,  // Use default delay
-        orderId // Pass the order ID
-    );
+    // Determine notification type based on event_type
+    const isPaymentConfirmation = 
+        item.event_type === 'order.payment_status_changed' && 
+        item.payment_status === 'paid';
+
+    // Display the appropriate notification
+    let toastEl;
+    
+    if (isPaymentConfirmation) {
+        // Payment confirmation notification (purchase)
+        toastEl = showPaymentConfirmationToast(
+            buyer, 
+            productName, 
+            createdAt, 
+            lastUpdatedAt,
+            productImageUrl,
+            false, // Not a realtime notification
+            null,  // Use default delay
+            orderId // Pass the order ID
+        );
+    } else {
+        // Standard order notification (checkout)
+        const hhmm = createdAt ? formatHoursMinutes(createdAt) : "";
+        toastEl = showToast(
+            buyer,
+            productName,
+            hhmm,
+            createdAt,
+            productImageUrl,
+            false, // Not a realtime notification
+            null,  // Use default delay
+            orderId // Pass the order ID
+        );
+    }
 
     // First timeout: Hide the toast after displaying it for configured delay
     setTimeout(() => {
