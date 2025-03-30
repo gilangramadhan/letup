@@ -814,30 +814,30 @@ async function fetchRotatorData() {
             .gte('created_at', periodDaysAgo.toISOString())
             .limit(LETUP_CONFIG.rotatorDataLimit);
 
-        // Build filter based on what's enabled
-        let filters = [];
-        
-        // Add purchase filter if enabled
-        if (LETUP_CONFIG.rotatorIncludePurchases) {
-            filters.push("(event_type.eq.order.payment_status_changed,payment_status.eq.paid)");
+        // Create appropriate filters based on configuration
+        if (LETUP_CONFIG.rotatorIncludePurchases && LETUP_CONFIG.rotatorIncludeCheckouts) {
+            // If both are enabled, we need to use or() with proper filter syntax
+            query = query.or('event_type.eq.order.created,and(event_type.eq.order.payment_status_changed,payment_status.eq.paid)');
+        } else if (LETUP_CONFIG.rotatorIncludePurchases) {
+            // Only purchases
+            query = query
+                .eq('event_type', 'order.payment_status_changed')
+                .eq('payment_status', 'paid');
+        } else if (LETUP_CONFIG.rotatorIncludeCheckouts) {
+            // Only checkouts
+            query = query.eq('event_type', 'order.created');
         }
         
-        // Add checkout filter if enabled
-        if (LETUP_CONFIG.rotatorIncludeCheckouts) {
-            filters.push("(event_type.eq.order.created)");
-        }
-        
-        // If both are enabled, combine with OR
-        if (filters.length > 0) {
-            query = query.or(filters.join(','));
-        }
+        console.log("Executing rotator query with filters:", 
+            LETUP_CONFIG.rotatorIncludeCheckouts ? "Checkouts" : "No checkouts", 
+            LETUP_CONFIG.rotatorIncludePurchases ? "Purchases" : "No purchases"
+        );
         
         // Execute the query
         const { data, error } = await query;
 
         if (error) {
             console.error("Error fetching rotator data:", error);
-            console.log("Query filters:", filters);
             return;
         }
 
@@ -854,6 +854,21 @@ async function fetchRotatorData() {
                 product: rotatorData[0].product_name,
                 created: rotatorData[0].created_at
             });
+        } else {
+            // Log a more detailed message when no data is found
+            console.log("No rotator data found for period:", LETUP_CONFIG.rotatorPeriodDays, "days");
+            
+            // For debugging purposes, try a simplified query to confirm data exists
+            const { count, error: countError } = await supabase
+                .from(LETUP_CONFIG.tableName)
+                .select('*', { count: 'exact', head: true })
+                .gte('created_at', periodDaysAgo.toISOString());
+                
+            if (countError) {
+                console.error("Error checking for data existence:", countError);
+            } else {
+                console.log(`Total records available (without event filters): ${count}`);
+            }
         }
 
         // If we got new data & rotator not running, start it
