@@ -1026,7 +1026,7 @@ function getToastContainer() {
 }
 
 /************************************************
- * 6. showToast() - Creates & displays a new toast
+ * 6. showToast() - Creates & displays a new toast - UPDATED
  ************************************************/
 function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime = false, customDelay = null, orderId = null) {
     // Get container with proper position class
@@ -1097,7 +1097,6 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
         lottieEl.setAttribute("autoplay", "");
         lottieEl.style.width = "64px";
         lottieEl.style.height = "64px";
-        // lottieEl.style.marginRight = "4px";
         lottieEl.style.flexShrink = "0";
         toastEl.appendChild(lottieEl);
     }
@@ -1105,9 +1104,6 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     // Content wrapper
     const contentEl = document.createElement("div");
     contentEl.className = "toast-content";
-
-    // Apply name censoring based on configuration setting
-    const displayName = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
 
     // Decide what to display - order ID or buyer name
     let displayText;
@@ -1124,14 +1120,18 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     headingEl.innerHTML = `${displayText} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
     
-    // Subtext with inline image (hh:mm)
-    if (hhmm) {
+    // Subtext with relative time AND hh:mm format
+    if (timestamp) {
         // Get the Indonesian day name
         const dayName = formatIndonesianDay(timestamp);
+        
+        // Get human-readable relative time instead of hardcoded "Baru saja"
+        const relativeTime = formatRelativeTime(timestamp);
+        
         const subtextEl = document.createElement("div");
         subtextEl.className = "toast-subtext";
         subtextEl.innerHTML = `
-            <div class="toast-left"><span>Baru saja</span></div>
+            <div class="toast-left"><span>${relativeTime}</span></div>
             <div class="toast-right"><span>${dayName}, ${hhmm}</span></div>
         `;
         contentEl.appendChild(subtextEl);
