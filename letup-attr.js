@@ -911,7 +911,7 @@ function formatHoursMinutes(dateString) {
 }
 
 /************************************************
- * 5. formatRelativeTime(): human readable time
+ * 5. formatRelativeTime(): human readable time - UPDATED
  ************************************************/
 function formatRelativeTime(dateString) {
     try {
@@ -954,8 +954,14 @@ function formatRelativeTime(dateString) {
             return `${hours} jam lalu`;
         } else {
             const days = Math.floor(diffInSeconds / 86400);
-            // Cap at 7 days to prevent extreme values
-            return days > 7 ? "Seminggu lalu" : `${days} hari lalu`;
+            
+            // Check if it's yesterday (between 24-48 hours ago)
+            if (days === 1) {
+                return "Kemarin";
+            } else {
+                // For anything older than yesterday, show "X hari lalu"
+                return `${days} hari lalu`;
+            }
         }
     } catch (error) {
         console.error("Error formatting relative time:", error);
