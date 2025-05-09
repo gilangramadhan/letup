@@ -31,8 +31,8 @@ LETUP_CONFIG.watermarkUrl = "https://letup.com";      // Default watermark URLLE
 LETUP_CONFIG.aggregateDisplayInterval = 30 * 1000;   // Show toast notifications every 30 seconds
 LETUP_CONFIG.aggregateRefreshInterval = 5 * 60 * 1000; // Refresh data from Supabase every 5 minutes
 LETUP_CONFIG.aggregatePeriodDays = 1;                // Show counts for the last X days (default: 1 day)
-LETUP_CONFIG.checkoutCountText = "orang telah checkout";  // Text for checkout count notifications
-LETUP_CONFIG.purchaseCountText = "orang telah membeli";   // Text for purchase count notifications
+LETUP_CONFIG.checkoutCountText = "telah checkout";  // Text for checkout count notifications
+LETUP_CONFIG.purchaseCountText = "telah membeli";   // Text for purchase count notifications
 LETUP_CONFIG.maxProductsToShow = 3;                 // Maximum number of products to rotate through
 LETUP_CONFIG.rotatorPeriodDays = 14;              // Configure how many days back to fetch data for rotator (default: 14 days)
 LETUP_CONFIG.rotatorIncludeCheckouts = true;      // Whether to include checkouts in rotator data (default: true)
@@ -53,15 +53,16 @@ function addStyles() {
             font-size: 10px;
             color: #999;
             text-decoration: none;
-            margin-left: 8px;
             opacity: 0.7;
             transition: opacity 0.2s ease;
+            display: inline-block;
         }
 
         .watermark-link:hover {
             opacity: 1;
             text-decoration: underline;
         }
+
         /* Toast container - base styles */
         #toast-container {
             width: 90%;
@@ -193,17 +194,24 @@ function addStyles() {
         
         .toast-subtext {
             display: flex;
-            justify-content: flex-start;
-            align-items: flex-end;
+            justify-content: space-between;
+            align-items: center;
             flex-wrap: wrap;
         }
         
         .toast-left {
-            order: -1;
+            order: 1;
+        }
+
+        .toast-center {
+            order: 2;
+            text-align: center;
+            flex: 1;
+            margin: 0 8px;
         }
         
         .toast-right {
-            display: flex;
+            order: 3;
             margin-left: auto;
         }
         
@@ -393,21 +401,21 @@ addStyles();
             try {
                 // Parse the JSON configuration
                 const jsonConfig = JSON.parse(jsonAttr);
-                
+
                 // Apply all properties from the JSON config to LETUP_CONFIG
                 for (const [key, value] of Object.entries(jsonConfig)) {
                     // Convert kebab-case to camelCase if needed
                     const configKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-                    
+
                     // For productImageUrl, set the configured flag too
                     if (configKey === 'productImageUrl' && value) {
                         LETUP_CONFIG.productImageConfigured = true;
                     }
-                    
+
                     // Special handling for boolean values that might be strings
                     if (typeof value === 'string' && (value === 'true' || value === 'false')) {
                         LETUP_CONFIG[configKey] = value === 'true';
-                    } 
+                    }
                     // Special handling for numeric values that might be strings
                     else if (typeof value === 'string' && !isNaN(value) && !isNaN(parseFloat(value))) {
                         LETUP_CONFIG[configKey] = parseFloat(value);
@@ -417,7 +425,7 @@ addStyles();
                         LETUP_CONFIG[configKey] = value;
                     }
                 }
-                
+
                 console.log("Notifications: Configured from data-rilpop JSON attribute", LETUP_CONFIG);
             } catch (error) {
                 console.error("Error parsing data-rilpop JSON configuration:", error);
@@ -441,12 +449,12 @@ addStyles();
         }
         // Parse boolean attributes for name censoring
         if (currentScript.hasAttribute('data-censor-names')) {
-            LETUP_CONFIG.censorBuyerNames = 
+            LETUP_CONFIG.censorBuyerNames =
                 currentScript.getAttribute('data-censor-names') === 'true';
         }
         // Parse boolean attribute for showing order ID
         if (currentScript.hasAttribute('data-show-order-id')) {
-            LETUP_CONFIG.showOrderId = 
+            LETUP_CONFIG.showOrderId =
                 currentScript.getAttribute('data-show-order-id') === 'true';
         }
 
@@ -454,7 +462,7 @@ addStyles();
         if (currentScript.hasAttribute('data-position')) {
             const pos = currentScript.getAttribute('data-position').toLowerCase();
             if (pos === 'top' || pos === 'bottom') {
-            LETUP_CONFIG.position = pos;
+                LETUP_CONFIG.position = pos;
             }
         }
 
@@ -517,11 +525,11 @@ addStyles();
         if (currentScript.hasAttribute('data-watermark-text')) {
             LETUP_CONFIG.watermarkText = currentScript.getAttribute('data-watermark-text');
         }
-        
+
         if (currentScript.hasAttribute('data-watermark-url')) {
             LETUP_CONFIG.watermarkUrl = currentScript.getAttribute('data-watermark-url');
         }
-        
+
         if (currentScript.hasAttribute('data-show-watermark')) {
             LETUP_CONFIG.showWatermark = currentScript.getAttribute('data-show-watermark') === 'true';
         }
@@ -543,16 +551,16 @@ addStyles();
         try {
             // Parse the JSON configuration
             const jsonConfig = JSON.parse(jsonAttr);
-            
+
             // Apply all properties from the JSON config to LETUP_CONFIG
             for (const [key, value] of Object.entries(jsonConfig)) {
                 // Convert kebab-case to camelCase if needed
                 const configKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-                
+
                 // Special handling for boolean values that might be strings
                 if (typeof value === 'string' && (value === 'true' || value === 'false')) {
                     LETUP_CONFIG[configKey] = value === 'true';
-                } 
+                }
                 // Special handling for numeric values that might be strings
                 else if (typeof value === 'string' && !isNaN(value) && !isNaN(parseFloat(value))) {
                     LETUP_CONFIG[configKey] = parseFloat(value);
@@ -562,7 +570,7 @@ addStyles();
                     LETUP_CONFIG[configKey] = value;
                 }
             }
-            
+
             console.log("Notifications: Configured from container JSON attribute", LETUP_CONFIG);
         } catch (error) {
             console.error("Error parsing JSON configuration:", error);
@@ -584,7 +592,7 @@ addStyles();
         LETUP_CONFIG.showDismissButton =
             container.getAttribute('data-dismiss') === 'true';
     }
-    
+
     if (container.hasAttribute('data-censor-names')) {
         LETUP_CONFIG.censorBuyerNames =
             container.getAttribute('data-censor-names') === 'true';
@@ -780,7 +788,7 @@ function handleRealtimeNotification(notification) {
 
     // Flag that this is a realtime notification (for dismiss button logic)
     const isRealtime = true;
-    
+
     // Calculate the longer delay for realtime notifications
     const realtimeDelay = LETUP_CONFIG.autoHideDelay * LETUP_CONFIG.realtimeDelayMultiplier;
 
@@ -834,9 +842,9 @@ async function fetchRotatorData() {
         // Calculate period based on configuration
         const periodDaysAgo = new Date();
         periodDaysAgo.setDate(periodDaysAgo.getDate() - LETUP_CONFIG.rotatorPeriodDays);
-        
+
         console.log(`Fetching rotator data since: ${periodDaysAgo.toISOString()}`);
-        
+
         let query = supabase
             .from(LETUP_CONFIG.tableName)
             .select('*')
@@ -856,12 +864,12 @@ async function fetchRotatorData() {
             // Only checkouts
             query = query.eq('event_type', 'order.created');
         }
-        
-        console.log("Executing rotator query with filters:", 
-            LETUP_CONFIG.rotatorIncludeCheckouts ? "Checkouts" : "No checkouts", 
+
+        console.log("Executing rotator query with filters:",
+            LETUP_CONFIG.rotatorIncludeCheckouts ? "Checkouts" : "No checkouts",
             LETUP_CONFIG.rotatorIncludePurchases ? "Purchases" : "No purchases"
         );
-        
+
         // Execute the query
         const { data, error } = await query;
 
@@ -876,7 +884,7 @@ async function fetchRotatorData() {
         rotatorData.sort(() => Math.random() - 0.5);
 
         console.log(`Fetched ${rotatorData.length} entries for rotator notifications`);
-        
+
         if (rotatorData.length > 0) {
             console.log("Sample data (first item):", {
                 event_type: rotatorData[0].event_type,
@@ -886,13 +894,13 @@ async function fetchRotatorData() {
         } else {
             // Log a more detailed message when no data is found
             console.log("No rotator data found for period:", LETUP_CONFIG.rotatorPeriodDays, "days");
-            
+
             // For debugging purposes, try a simplified query to confirm data exists
             const { count, error: countError } = await supabase
                 .from(LETUP_CONFIG.tableName)
                 .select('*', { count: 'exact', head: true })
                 .gte('created_at', periodDaysAgo.toISOString());
-                
+
             if (countError) {
                 console.error("Error checking for data existence:", countError);
             } else {
@@ -946,12 +954,12 @@ function formatRelativeTime(dateString) {
     try {
         const now = new Date();
         let date;
-        
+
         // Better date parsing with validation
         if (typeof dateString === 'string') {
             // Handle ISO string format from Supabase
             date = new Date(dateString);
-            
+
             // Check if date is valid
             if (isNaN(date.getTime())) {
                 console.error("Invalid date format received:", dateString);
@@ -961,10 +969,10 @@ function formatRelativeTime(dateString) {
             console.error("Invalid date input type:", typeof dateString);
             return "Beberapa waktu lalu"; // Fallback
         }
-        
+
         // Calculate difference in seconds
         const diffInSeconds = Math.floor((now - date) / 1000);
-        
+
         // Log for debugging
         console.log("Date difference calculation:", {
             now: now.toISOString(),
@@ -972,7 +980,7 @@ function formatRelativeTime(dateString) {
             diffInSeconds,
             diffInDays: Math.floor(diffInSeconds / 86400)
         });
-        
+
         if (diffInSeconds < 360) {
             return "Baru saja";
         } else if (diffInSeconds < 3600) {
@@ -983,7 +991,7 @@ function formatRelativeTime(dateString) {
             return `${hours} jam lalu`;
         } else {
             const days = Math.floor(diffInSeconds / 86400);
-            
+
             // Check if it's yesterday (between 24-48 hours ago)
             if (days === 1) {
                 return "Kemarin";
@@ -1013,16 +1021,22 @@ function formatIndonesianDay(dateString) {
     return indonesianDays[dayIndex];
 }
 
-// New Function: Watermark Link
-function generateWatermarkUrl() {
+// New Function: Watermark Link with UTM Tracker
+function generateWatermarkUrl(type = 'regpop') {
+    return LETUP_CONFIG.watermarkUrl;
+}
+
+// Add a new function to handle the click event
+function handleWatermarkClick(e, type = 'regpop') {
+    e.preventDefault();
     const baseUrl = LETUP_CONFIG.watermarkUrl;
     const params = new URLSearchParams({
         utm_source: window.location.hostname,
-        utm_medium: 'notification',
+        utm_medium: type,
         utm_campaign: new Date().toISOString().split('T')[0],
         utm_content: window.location.pathname
     });
-    return `${baseUrl}?${params.toString()}`;
+    window.open(`${baseUrl}?${params.toString()}`, '_blank', 'noopener');
 }
 
 /************************************************
@@ -1030,25 +1044,25 @@ function generateWatermarkUrl() {
  ************************************************/
 function censorName(name) {
     if (!name) return "Seseorang";
-    
+
     // Split the name into words
     const words = name.split(' ');
-    
+
     // Process each word individually
     const censoredWords = words.map(word => {
         // Handle short words (keep first letter only)
         if (word.length <= 2) {
             return word[0] + '*';
         }
-        
+
         // For longer words, keep first 2 chars and censor the rest
         const firstPart = word.substring(0, 2);
         const remainingLength = word.length - 2;
         const asterisks = '*'.repeat(remainingLength);
-        
+
         return firstPart + asterisks;
     });
-    
+
     // Join the censored words back together
     return censoredWords.join(' ');
 }
@@ -1058,17 +1072,17 @@ function censorName(name) {
  **************************************************/
 function getToastContainer() {
     let container = document.getElementById('toast-container');
-    
+
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
         document.body.appendChild(container);
     }
-    
+
     // Apply position class based on configuration
     container.className = ''; // Clear existing classes
     container.classList.add(`position-${LETUP_CONFIG.position}`);
-    
+
     return container;
 }
 
@@ -1078,7 +1092,7 @@ function getToastContainer() {
 function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime = false, customDelay = null, orderId = null) {
     // Get container with proper position class
     const container = getToastContainer();
-    
+
     // Limit to max toast elements based on config
     if (container.children.length >= LETUP_CONFIG.maxToasts) {
         // Remove the oldest toast
@@ -1091,7 +1105,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
 
     // Create flip container if product image URL is available or if configured globally
     const hasProductImage = productImageUrl || LETUP_CONFIG.productImageConfigured;
-    
+
     if (hasProductImage) {
         // Create flip container structure
         const flipContainer = document.createElement("div");
@@ -1155,7 +1169,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     // Decide what to display - order ID or buyer name
     let displayText;
     if (LETUP_CONFIG.showOrderId && orderId) {
-        displayText = `Order #${orderId}`; 
+        displayText = `Order #${orderId}`;
     } else {
         // Use censored name if configured, otherwise use plain buyer name
         displayText = LETUP_CONFIG.censorBuyerNames ? censorName(buyer) : buyer;
@@ -1166,22 +1180,24 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
     headingEl.className = "toast-heading";
     headingEl.innerHTML = `${displayText} <span class="checkout-text">${LETUP_CONFIG.checkoutText}</span> <strong>${product}</strong>!`;
     contentEl.appendChild(headingEl);
-    
+
     // Subtext with relative time AND hh:mm format
     if (timestamp) {
         // Get the Indonesian day name
         const dayName = formatIndonesianDay(timestamp);
-        
+
         // Get human-readable relative time instead of hardcoded "Baru saja"
         const relativeTime = formatRelativeTime(timestamp);
-        
+
         const subtextEl = document.createElement("div");
         subtextEl.className = "toast-subtext";
         subtextEl.innerHTML = `
             <div class="toast-left"><span>${relativeTime}</span></div>
+            <div class="toast-center">
+                ${LETUP_CONFIG.showWatermark ? `<a href="${generateWatermarkUrl()}" class="watermark-link" target="_blank" rel="noopener" onclick="handleWatermarkClick(event, 'copop')">${LETUP_CONFIG.watermarkText}</a>` : ''}
+            </div>
             <div class="toast-right">
                 <span>${dayName}, ${hhmm}</span>
-                ${LETUP_CONFIG.showWatermark ? `<a href="${generateWatermarkUrl()}" class="watermark-link" target="_blank" rel="noopener">${LETUP_CONFIG.watermarkText}</a>` : ''}
             </div>
         `;
         contentEl.appendChild(subtextEl);
@@ -1229,7 +1245,7 @@ function showToast(buyer, product, hhmm, timestamp, productImageUrl, isRealtime 
 function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, productImageUrl, isRealtime = false, customDelay = null, orderId = null) {
     // Get container with proper position class
     const container = getToastContainer();
-    
+
     // Limit to max toast elements based on config
     if (container.children.length >= LETUP_CONFIG.maxToasts) {
         // Remove the oldest toast
@@ -1242,7 +1258,7 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
 
     // Create flip container if product image URL is available or if configured globally
     const hasProductImage = productImageUrl || LETUP_CONFIG.productImageConfigured;
-    
+
     if (hasProductImage) {
         // Create flip container structure
         const flipContainer = document.createElement("div");
@@ -1317,10 +1333,10 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
     headingEl.innerHTML = `${displayText} <span class="purchase-text">${LETUP_CONFIG.purchaseText}</span> <strong>${product}</strong>!`;
-    
+
     // Add the heading to the content element
     contentEl.appendChild(headingEl);
-    
+
     // Subtext with both relative time AND hh:mm format
     // Get the Indonesian day name
     const dayName = lastUpdatedAt ? formatIndonesianDay(lastUpdatedAt) : "";
@@ -1335,9 +1351,11 @@ function showPaymentConfirmationToast(buyer, product, timestamp, lastUpdatedAt, 
 
     subtextEl.innerHTML = `
         <div class="toast-left"><span>${relativeTime}</span></div>
+        <div class="toast-center">
+            ${LETUP_CONFIG.showWatermark ? `<a href="${generateWatermarkUrl()}" class="watermark-link" target="_blank" rel="noopener" onclick="handleWatermarkClick(event, 'purpop')">${LETUP_CONFIG.watermarkText}</a>` : ''}
+        </div>
         <div class="toast-right">
             <span>${dayName}, ${hhmm}</span>
-            ${LETUP_CONFIG.showWatermark ? `<a href="${generateWatermarkUrl()}" class="watermark-link" target="_blank" rel="noopener">${LETUP_CONFIG.watermarkText}</a>` : ''}
         </div>
     `;
     contentEl.appendChild(subtextEl);
@@ -1396,20 +1414,20 @@ function initAggregateNotifications() {
     console.log("Display interval:", LETUP_CONFIG.aggregateDisplayInterval / 1000, "seconds");
     console.log("Refresh interval:", LETUP_CONFIG.aggregateRefreshInterval / 60000, "minutes");
     console.log("Period:", LETUP_CONFIG.aggregatePeriodDays, "days");
-    
+
     // First, fetch the data
     refreshAggregateData().then(success => {
         console.log("=== AGGREGATE TOASTS: Initial data load " + (success ? "SUCCESS" : "FAILED") + " ===");
-        
+
         if (success) {
             console.log("Checkout data items:", aggregateCache.checkoutData.length);
             console.log("Purchase data items:", aggregateCache.purchaseData.length);
         }
-        
+
         // Start display cycle (show toast every 30 seconds)
         console.log("=== AGGREGATE TOASTS: Starting display cycle ===");
         setInterval(showCachedAggregateToast, LETUP_CONFIG.aggregateDisplayInterval);
-        
+
         // Start refresh cycle (update cache every 5 minutes)
         console.log("=== AGGREGATE TOASTS: Starting refresh cycle ===");
         setInterval(refreshAggregateData, LETUP_CONFIG.aggregateRefreshInterval);
@@ -1420,12 +1438,12 @@ function initAggregateNotifications() {
 async function refreshAggregateData() {
     try {
         console.log("=== AGGREGATE TOASTS: Refreshing data from Supabase ===");
-        
+
         // Calculate timestamp for X days ago
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - LETUP_CONFIG.aggregatePeriodDays);
         console.log("Looking for data since:", daysAgo.toISOString());
-        
+
         // Get checkout counts
         console.log("Fetching checkout counts...");
         const { data: checkoutData, error: checkoutError } = await supabase
@@ -1434,7 +1452,7 @@ async function refreshAggregateData() {
             .eq('event_type', 'order.created')
             .gte('created_at', daysAgo.toISOString())
             .group('product_name');
-            
+
         if (checkoutError) {
             console.error("Error fetching checkout counts:", checkoutError);
         } else {
@@ -1443,7 +1461,7 @@ async function refreshAggregateData() {
             aggregateCache.checkoutData = (checkoutData || []).filter(item => item.count > 0);
             console.log("Filtered checkout data:", aggregateCache.checkoutData);
         }
-        
+
         // Get purchase counts
         console.log("Fetching purchase counts...");
         const { data: purchaseData, error: purchaseError } = await supabase
@@ -1453,7 +1471,7 @@ async function refreshAggregateData() {
             .eq('payment_status', 'paid')
             .gte('created_at', daysAgo.toISOString())
             .group('product_name');
-            
+
         if (purchaseError) {
             console.error("Error fetching purchase counts:", purchaseError);
         } else {
@@ -1462,14 +1480,14 @@ async function refreshAggregateData() {
             aggregateCache.purchaseData = (purchaseData || []).filter(item => item.count > 0);
             console.log("Filtered purchase data:", aggregateCache.purchaseData);
         }
-        
+
         // Update cache timestamp
         aggregateCache.lastUpdated = new Date();
-        
+
         console.log("=== AGGREGATE TOASTS: Data refresh complete ===");
         console.log("Checkout items:", aggregateCache.checkoutData.length);
         console.log("Purchase items:", aggregateCache.purchaseData.length);
-        
+
         return aggregateCache.checkoutData.length > 0 || aggregateCache.purchaseData.length > 0;
     } catch (err) {
         console.error('=== AGGREGATE TOASTS: Error refreshing data ===', err);
@@ -1480,16 +1498,16 @@ async function refreshAggregateData() {
 // Show toast from cached data
 function showCachedAggregateToast() {
     console.log("=== AGGREGATE TOASTS: Attempting to show toast ===");
-    
+
     // Skip if no data available
     if (!aggregateCache.lastUpdated) {
         console.log("No aggregate data available yet - skipping toast display");
         return;
     }
-    
+
     // Prepare arrays of data to show
     const dataToShow = [];
-    
+
     // Add checkout data if available
     if (aggregateCache.checkoutData.length > 0) {
         aggregateCache.checkoutData.forEach(item => {
@@ -1500,7 +1518,7 @@ function showCachedAggregateToast() {
             });
         });
     }
-    
+
     // Add purchase data if available
     if (aggregateCache.purchaseData.length > 0) {
         aggregateCache.purchaseData.forEach(item => {
@@ -1511,24 +1529,24 @@ function showCachedAggregateToast() {
             });
         });
     }
-    
+
     // Skip if no data to show
     if (dataToShow.length === 0) {
         console.log("No aggregate data to display - skipping toast");
         return;
     }
-    
+
     console.log("Data items available to show:", dataToShow.length);
-    
+
     // Rotate through products to show
     let itemToShow;
-    
+
     // If we have too many products, rotate through them
     if (dataToShow.length > LETUP_CONFIG.maxProductsToShow) {
         // Get item at current index and increment for next time
         itemToShow = dataToShow[aggregateCache.currentProductIndex];
         console.log("Rotating through products - showing index:", aggregateCache.currentProductIndex);
-        
+
         // Increment index and wrap around if needed
         aggregateCache.currentProductIndex = (aggregateCache.currentProductIndex + 1) % dataToShow.length;
     } else {
@@ -1537,9 +1555,9 @@ function showCachedAggregateToast() {
         itemToShow = dataToShow[randomIndex];
         console.log("Randomly selected item at index:", randomIndex);
     }
-    
+
     console.log("Selected item to show:", itemToShow);
-    
+
     // Show the selected toast notification
     showAggregateToast(
         itemToShow.count,
@@ -1547,7 +1565,7 @@ function showCachedAggregateToast() {
         itemToShow.type,
         LETUP_CONFIG.aggregatePeriodDays
     );
-    
+
     console.log("=== AGGREGATE TOASTS: Toast displayed successfully ===");
 }
 
@@ -1556,7 +1574,7 @@ function showAggregateToast(count, productName, type, periodDays) {
     console.log(`Showing aggregate toast: ${count} ${type} for ${productName}`);
     // Get container with proper position class
     const container = getToastContainer();
-    
+
     // Limit to max toast elements based on config
     if (container.children.length >= LETUP_CONFIG.maxToasts) {
         // Remove the oldest toast
@@ -1566,7 +1584,7 @@ function showAggregateToast(count, productName, type, periodDays) {
     // Create toast element
     const toastEl = document.createElement("div");
     toastEl.className = "toast aggregate-toast";
-    
+
     // Add specific class based on type
     if (type === 'purchase') {
         toastEl.classList.add('payment-toast');
@@ -1587,13 +1605,13 @@ function showAggregateToast(count, productName, type, periodDays) {
 
     // Lottie Player (for front) based on type
     const lottieEl = document.createElement("dotlottie-player");
-    
+
     if (type === 'checkout') {
         lottieEl.setAttribute("src", "https://lottie.host/a5a44751-5f25-48fb-8866-32084a94469c/QSiPMensPK.lottie");
     } else {
         lottieEl.setAttribute("src", "https://lottie.host/f6cd6d57-120a-4e02-bf2e-c06fd3292d66/kureTbkW4K.lottie");
     }
-    
+
     lottieEl.setAttribute("background", "transparent");
     lottieEl.setAttribute("speed", "1");
     lottieEl.setAttribute("direction", "1");
@@ -1613,7 +1631,7 @@ function showAggregateToast(count, productName, type, periodDays) {
     imgEl.style.justifyContent = "center";
     imgEl.style.fontSize = "24px";
     imgEl.style.fontWeight = "bold";
-    
+
     // Color the back based on type
     if (type === 'checkout') {
         imgEl.style.backgroundColor = "#09afed";
@@ -1624,7 +1642,7 @@ function showAggregateToast(count, productName, type, periodDays) {
         imgEl.style.color = "white";
         imgEl.innerHTML = count;
     }
-    
+
     flipImgBack.appendChild(imgEl);
 
     // Assemble the flip container
@@ -1642,19 +1660,19 @@ function showAggregateToast(count, productName, type, periodDays) {
     // Heading with appropriate message
     const headingEl = document.createElement("div");
     headingEl.className = "toast-heading";
-    
+
     const countText = `<strong>${count}</strong>`;
-    const typeText = type === 'checkout' 
-        ? `<span class="checkout-text">${LETUP_CONFIG.checkoutCountText}</span>` 
-        : `<span class="purchase-text">${LETUP_CONFIG.purchaseCountText}</span>`;
-    
+    const typeText = type === 'checkout'
+        ? `<span class="checkout-text">${LETUP_CONFIG.checkoutCountText}</span> orang`
+        : `<span class="purchase-text">${LETUP_CONFIG.purchaseCountText}</span> orang`;
+
     headingEl.innerHTML = `${countText} ${typeText} <strong>${productName}</strong>!`;
     contentEl.appendChild(headingEl);
-    
+
     // Subtext with time period (in days)
     const subtextEl = document.createElement("div");
     subtextEl.className = "toast-subtext";
-    
+
     // Format the period text differently based on number of days
     let periodText;
     if (periodDays === 1) {
@@ -1662,8 +1680,13 @@ function showAggregateToast(count, productName, type, periodDays) {
     } else {
         periodText = `dalam ${periodDays} hari terakhir`;
     }
-    
-    subtextEl.innerHTML = `<div class="toast-left"><span>${periodText}</span></div>`;
+
+    subtextEl.innerHTML = `
+        <div class="toast-left"><span>${periodText}</span></div>
+        <div class="toast-right">
+            ${LETUP_CONFIG.showWatermark ? `<a href="${generateWatermarkUrl()}" class="watermark-link" target="_blank" rel="noopener" onclick="handleWatermarkClick(event, 'aggpop')">${LETUP_CONFIG.watermarkText}</a>` : ''}
+        </div>
+    `;
     contentEl.appendChild(subtextEl);
 
     toastEl.appendChild(contentEl);
@@ -1709,107 +1732,14 @@ if (LETUP_CONFIG.enableAggregateNotifications) {
     console.log("=== AGGREGATE TOASTS: Feature is disabled in config ===");
 }
 
-// ... existing code ...
-
-/**************************************************
- * 9. Test Button for Aggregate Toasts
- **************************************************/
-function createAggregateTestButton() {
-    console.log("=== AGGREGATE TOASTS: Creating test buttons ===");
-    
-    // Create test button container
-    const buttonContainer = document.createElement("div");
-    buttonContainer.id = "letup-test-buttons";
-    buttonContainer.style.position = "fixed";
-    buttonContainer.style.bottom = "20px";
-    buttonContainer.style.right = "20px";
-    buttonContainer.style.zIndex = "9998";
-    buttonContainer.style.display = "flex";
-    buttonContainer.style.flexDirection = "column";
-    buttonContainer.style.gap = "10px";
-    
-    // Create checkout test button
-    const checkoutButton = document.createElement("button");
-    checkoutButton.innerText = "Test Checkout Toast";
-    checkoutButton.style.padding = "8px 12px";
-    checkoutButton.style.backgroundColor = "#09afed";
-    checkoutButton.style.color = "white";
-    checkoutButton.style.border = "none";
-    checkoutButton.style.borderRadius = "4px";
-    checkoutButton.style.cursor = "pointer";
-    checkoutButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-    checkoutButton.style.fontFamily = "sans-serif";
-    checkoutButton.style.fontSize = "14px";
-    
-    // Add hover effect
-    checkoutButton.onmouseover = function() {
-        this.style.backgroundColor = "#0a8ec0";
-    };
-    checkoutButton.onmouseout = function() {
-        this.style.backgroundColor = "#09afed";
-    };
-    
-    // Add click handler for checkout test
-    checkoutButton.addEventListener("click", function() {
-        console.log("=== AGGREGATE TOASTS: Showing test checkout toast ===");
-        showAggregateToast(
-            Math.floor(Math.random() * 50) + 5, // Random number between 5-55
-            "Product Example",
-            "checkout",
-            LETUP_CONFIG.aggregatePeriodDays
-        );
-    });
-    
-    // Create purchase test button
-    const purchaseButton = document.createElement("button");
-    purchaseButton.innerText = "Test Purchase Toast";
-    purchaseButton.style.padding = "8px 12px";
-    purchaseButton.style.backgroundColor = "#00a244";
-    purchaseButton.style.color = "white";
-    purchaseButton.style.border = "none";
-    purchaseButton.style.borderRadius = "4px";
-    purchaseButton.style.cursor = "pointer";
-    purchaseButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-    purchaseButton.style.fontFamily = "sans-serif";
-    purchaseButton.style.fontSize = "14px";
-    
-    // Add hover effect
-    purchaseButton.onmouseover = function() {
-        this.style.backgroundColor = "#008538";
-    };
-    purchaseButton.onmouseout = function() {
-        this.style.backgroundColor = "#00a244";
-    };
-    
-    // Add click handler for purchase test
-    purchaseButton.addEventListener("click", function() {
-        console.log("=== AGGREGATE TOASTS: Showing test purchase toast ===");
-        showAggregateToast(
-            Math.floor(Math.random() * 20) + 1, // Random number between 1-20
-            "Product Example",
-            "purchase",
-            LETUP_CONFIG.aggregatePeriodDays
-        );
-    });
-    
-    // Append buttons to container
-    buttonContainer.appendChild(checkoutButton);
-    buttonContainer.appendChild(purchaseButton);
-    
-    // Append container to body
-    document.body.appendChild(buttonContainer);
-    
-    console.log("=== AGGREGATE TOASTS: Test buttons created ===");
-}
-
 // Add this to your initSupabase() function after the other initializations
 if (LETUP_CONFIG.enableAggregateNotifications) {
     console.log("=== AGGREGATE TOASTS: Feature enabled, initializing... ===");
     initAggregateNotifications();
-    
+
     // Add test buttons when in development mode or when a URL parameter is present
-    if (window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' || 
+    if (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
         window.location.search.includes('letup_test=true')) {
         createAggregateTestButton();
     }
@@ -1848,19 +1778,19 @@ function showNextRotatorNotification() {
     const orderId = item.order_id || null;
 
     // Determine notification type based on event_type
-    const isPaymentConfirmation = 
-        item.event_type === 'order.payment_status_changed' && 
+    const isPaymentConfirmation =
+        item.event_type === 'order.payment_status_changed' &&
         item.payment_status === 'paid';
 
     // Display the appropriate notification
     let toastEl;
-    
+
     if (isPaymentConfirmation) {
         // Payment confirmation notification (purchase)
         toastEl = showPaymentConfirmationToast(
-            buyer, 
-            productName, 
-            createdAt, 
+            buyer,
+            productName,
+            createdAt,
             lastUpdatedAt,
             productImageUrl,
             false, // Not a realtime notification
