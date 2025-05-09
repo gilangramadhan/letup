@@ -51,16 +51,17 @@ function addStyles() {
         /* Watermark Link */
         .watermark-link {
             font-size: 10px;
-            color: #999;
+            color: #fff;
             text-decoration: none;
-            opacity: 0.7;
             transition: opacity 0.2s ease;
             display: inline-block;
+            background: skyblue;
+            padding: 3px 6px 2px 6px;
+            border-radius: 25px;
         }
 
         .watermark-link:hover {
             opacity: 1;
-            text-decoration: underline;
         }
 
         /* Toast container - base styles */
